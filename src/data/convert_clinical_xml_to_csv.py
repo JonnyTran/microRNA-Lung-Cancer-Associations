@@ -2,6 +2,10 @@ import os
 import xml.etree.ElementTree as ET
 import csv
 
+"""
+We extract relevant data fields from clinical xml files and combine into one csv file in /data/processed/clinical/
+"""
+
 clinical_src_dir = os.getcwd() + "/assn-mirna-luad/data/interim/clinical/"
 clinical_tgt_dir = os.getcwd() + "/assn-mirna-luad/data/processed/clinical/"
 

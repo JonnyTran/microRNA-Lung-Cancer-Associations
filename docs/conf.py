@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Association-miRNA-LUAD documentation build configuration file, created by
+# Association-mirna-LUAD documentation build configuration file, created by
 # sphinx-quickstart.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -41,7 +41,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Association-miRNA-LUAD'
+project = u'Association-mirna-LUAD'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -185,7 +185,7 @@ latex_elements = {
 latex_documents = [
     ('index',
      'assn-mirna-luad.tex',
-     u'Association-miRNA-LUAD Documentation',
+     u'Association-mirna-LUAD Documentation',
      u"Nhat Tran", 'manual'),
 ]
 
@@ -215,7 +215,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'assn-mirna-luad', u'Association-miRNA-LUAD Documentation',
+    ('index', 'assn-mirna-luad', u'Association-mirna-LUAD Documentation',
      [u"Nhat Tran"], 1)
 ]
 
@@ -229,9 +229,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'assn-mirna-luad', u'Association-miRNA-LUAD Documentation',
-     u"Nhat Tran", 'Association-miRNA-LUAD',
-     'A association study between miRNA signatures and various stages in lung cancer', 'Miscellaneous'),
+    ('index', 'assn-mirna-luad', u'Association-mirna-LUAD Documentation',
+     u"Nhat Tran", 'Association-mirna-LUAD',
+     'A association study between mirna signatures and various stages in lung cancer', 'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
