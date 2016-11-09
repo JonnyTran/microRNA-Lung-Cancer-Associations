@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Association-mirna-LUAD documentation build configuration file, created by
+# Association-miRNA-LUAD documentation build configuration file, created by
 # sphinx-quickstart.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -41,7 +41,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Association-mirna-LUAD'
+project = u'Association-miRNA-LUAD'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -164,7 +164,7 @@ html_static_path = ['_static']
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'assn-mirna-luaddoc'
+htmlhelp_basename = 'assn-miRNA-luaddoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -184,8 +184,8 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index',
-     'assn-mirna-luad.tex',
-     u'Association-mirna-LUAD Documentation',
+     'assn-miRNA-luad.tex',
+     u'Association-miRNA-LUAD Documentation',
      u"Nhat Tran", 'manual'),
 ]
 
@@ -215,7 +215,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'assn-mirna-luad', u'Association-mirna-LUAD Documentation',
+    ('index', 'assn-miRNA-luad', u'Association-miRNA-LUAD Documentation',
      [u"Nhat Tran"], 1)
 ]
 
@@ -229,9 +229,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'assn-mirna-luad', u'Association-mirna-LUAD Documentation',
-     u"Nhat Tran", 'Association-mirna-LUAD',
-     'A association study between mirna signatures and various stages in lung cancer', 'Miscellaneous'),
+    ('index', 'assn-miRNA-luad', u'Association-miRNA-LUAD Documentation',
+     u"Nhat Tran", 'Association-miRNA-LUAD',
+     'A association study between miRNA signatures and various stages in lung cancer', 'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.

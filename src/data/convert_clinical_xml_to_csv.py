@@ -6,8 +6,8 @@ import csv
 We extract relevant data fields from clinical xml files and combine into one csv file in /data/processed/clinical/
 """
 
-clinical_src_dir = os.getcwd() + "/assn-mirna-luad/data/interim/clinical/"
-clinical_tgt_dir = os.getcwd() + "/assn-mirna-luad/data/processed/clinical/"
+clinical_src_dir = os.getcwd() + "/assn-miRNA-luad/data/interim/clinical/"
+clinical_tgt_dir = os.getcwd() + "/assn-miRNA-luad/data/processed/clinical/"
 
 luad = "http://tcga.nci/bcr/xml/clinical/luad/2.7"
 shared = "http://tcga.nci/bcr/xml/shared/2.7"
