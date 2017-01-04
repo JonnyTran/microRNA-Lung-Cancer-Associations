@@ -231,7 +231,7 @@ man_pages = [
 texinfo_documents = [
     ('index', 'assn-miRNA-luad', u'Association-miRNA-LUAD Documentation',
      u"Nhat Tran", 'Association-miRNA-LUAD',
-     'A association study between miRNA signatures and various stages in lung cancer', 'Miscellaneous'),
+     'A association study between miRNA signatures and various stages in lung tumor', 'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
