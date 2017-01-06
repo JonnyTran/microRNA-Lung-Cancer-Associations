@@ -35,9 +35,9 @@ class miRNATargetNetwork:
         for m in miRNAs:
             for t in targets:
                 dys = np.dot((miRNAs_A[m] - np.mean(miRNAs_A[m])), (targets_A[t] - np.mean(targets_A[t]))) / (
-                (n_A - 1) * np.std(miRNAs_A[m]) * np.std(targets_A[t])) \
-                      - np.dot((miRNAs_B[m] - np.mean(miRNAs_B[m])), (targets_B[t] - np.mean(targets_B[t]))) / (
-                (n_B - 1) * np.std(miRNAs_B[m]) * np.std(targets_B[t]))
+                (n_A - 1) * np.std(miRNAs_A[m]) * np.std(targets_A[t])) - \
+                      np.dot((miRNAs_B[m] - np.mean(miRNAs_B[m])), (targets_B[t] - np.mean(targets_B[t]))) / (
+                      (n_B - 1) * np.std(miRNAs_B[m]) * np.std(targets_B[t]))
                 print m, '-', t, ':', dys
                 if dys >= self.threshold:
                     self.add_edge(m, t, dys=dys)
