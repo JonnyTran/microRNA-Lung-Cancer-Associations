@@ -25,26 +25,24 @@ class miRNATargetNetwork:
         :param targets_B: Pandas dataframe for normal samples
         """
         miRNAs = miRNAs_A.columns
-        targets = targets_A.columns
+        targets = targets_B.columns
         self.add_miRNA_nodes(miRNAs)
         self.add_target_nodes(targets)
 
         n_A = miRNAs_A.shape[0]
         n_B = miRNAs_B.shape[0]
+        print 'n_A', n_A
+        print 'n_B', n_B
 
         for m in miRNAs:
             for t in targets:
-                print 'miRNA_target_A_corr', np.dot(miRNAs_A[m] - np.mean(miRNAs_A[m]),
-                                                    targets_A[t] - np.mean(targets_A[t]))
-                print 'miRNA_target_A_corr', ((n_A - 1) * np.std(miRNAs_A[m]) * np.std(targets_A[t]))
                 miRNA_target_A_corr = np.dot(miRNAs_A[m] - np.mean(miRNAs_A[m]), targets_A[t] - np.mean(targets_A[t])) / \
                                       ((n_A - 1) * np.std(miRNAs_A[m]) * np.std(targets_A[t]))
+
                 miRNA_target_B_corr = np.dot(miRNAs_B[m] - np.mean(miRNAs_B[m]), targets_B[t] - np.mean(targets_B[t])) / \
                                       ((n_B - 1) * np.std(miRNAs_B[m]) * np.std(targets_B[t]))
-
                 dys = miRNA_target_A_corr - miRNA_target_B_corr
-                print "miRNA_target_A_corr", m, '-', t, ':', miRNA_target_A_corr
-                print "miRNA_target_B_corr", m, '-', t, ':', miRNA_target_B_corr
+                print m, '<->', t, ':', dys
                 if np.abs(dys) >= self.threshold:
                     self.add_edge(m, t, dys=dys)
 
