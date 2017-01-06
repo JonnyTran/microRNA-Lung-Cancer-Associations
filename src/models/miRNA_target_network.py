@@ -16,13 +16,13 @@ class miRNATargetNetwork:
         self.B.add_nodes_from(targets, bipartite=1)
 
     def train(self, miRNAs_A, targets_A, miRNAs_B, targets_B):
-        # Constructing the MTDN from xu2011prioritizing
         """
+        Constructing the MTDN from xu2011prioritizing
 
-        :param miRNAs_A: Pandas dataframe
-        :param targets_A: Pandas dataframe
-        :param miRNAs_B: Pandas dataframe
-        :param targets_B: Pandas dataframe
+        :param miRNAs_A: Pandas dataframe for tumor samples
+        :param targets_A: Pandas dataframe for tumor samples
+        :param miRNAs_B: Pandas dataframe for normal  samples
+        :param targets_B: Pandas dataframe for normal samples
         """
         miRNAs = miRNAs_A.columns
         targets = targets_A.columns
@@ -34,6 +34,9 @@ class miRNATargetNetwork:
 
         for m in miRNAs:
             for t in targets:
+                print 'miRNA_target_A_corr', np.dot(miRNAs_A[m] - np.mean(miRNAs_A[m]),
+                                                    targets_A[t] - np.mean(targets_A[t]))
+                print 'miRNA_target_A_corr', ((n_A - 1) * np.std(miRNAs_A[m]) * np.std(targets_A[t]))
                 miRNA_target_A_corr = np.dot(miRNAs_A[m] - np.mean(miRNAs_A[m]), targets_A[t] - np.mean(targets_A[t])) / \
                                       ((n_A - 1) * np.std(miRNAs_A[m]) * np.std(targets_A[t]))
                 miRNA_target_B_corr = np.dot(miRNAs_B[m] - np.mean(miRNAs_B[m]), targets_B[t] - np.mean(targets_B[t])) / \
