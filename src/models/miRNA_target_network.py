@@ -49,12 +49,14 @@ class miRNATargetNetwork:
 
                 dys = miRNA_target_A_corr - miRNA_target_B_corr
                 # print m, '<->', t, ':', dys
-                if np.abs(dys) >= self.threshold:
-                    self.add_edge(m, t, dys=dys)
-                    edge_count += 1
+                try:
+                    if np.abs(dys) >= self.threshold:
+                        self.add_edge(m, t, dys=dys)
+                        edge_count += 1
+                except ValueError:
+                    pass
+
             print m, ':', edge_count
-
-
 
     def add_edge(self, miRNA, target, dys):
         self.B.add_edge(miRNA, target, dys=dys)
