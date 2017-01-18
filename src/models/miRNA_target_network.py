@@ -5,8 +5,8 @@ from networkx.algorithms import bipartite
 
 
 class miRNATargetNetwork:
-    def __init__(self, threshold=0.6):
-        self.threshold = threshold
+    def __init__(self, dys_threshold=0.6):
+        self.dys_threshold = dys_threshold
         self.B = nx.Graph()
 
     def add_miRNA_nodes(self, miRNAs):
@@ -48,14 +48,14 @@ class miRNATargetNetwork:
                 dys = miRNA_target_A_corr - miRNA_target_B_corr
                 # print m, '<->', t, ':', dys
 
-                if abs(dys) >= self.threshold:
+                if abs(dys) >= self.dys_threshold:
                     self.B.add_edge(m, t, dys=dys)
 
-                if miRNA_target_A_corr <= -self.threshold:
-                    self.B.add_edge(m, t, tumor_corr=miRNA_target_A_corr)
-
-                if miRNA_target_B_corr <= -self.threshold:
-                    self.B.add_edge(m, t, tumor_corr=miRNA_target_B_corr)
+                    # if miRNA_target_A_corr <= -self.dys_threshold:
+                    #     self.B.add_edge(m, t, tumor_corr=miRNA_target_A_corr)
+                    #
+                    # if miRNA_target_B_corr <= -self.dys_threshold:
+                    #     self.B.add_edge(m, t, tumor_corr=miRNA_target_B_corr)
 
                     # for m in miRNAs:
                     #     edge_count = 1
