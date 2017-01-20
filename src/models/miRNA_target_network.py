@@ -15,22 +15,22 @@ class miRNATargetNetwork:
     def add_target_nodes(self, targets):
         self.B.add_nodes_from(targets, bipartite=1)
 
-    def train(self, miRNAs_A, targets_A, miRNAs_B, targets_B, putative_assocs):
+    def train(self, miRNAs_tumor, targets_tumor, miRNAs_normal, targets_normal, putative_assocs):
         """
         Constructing the MTDN from xu2011prioritizing
 
-        :param miRNAs_A: Pandas dataframe for tumor samples
-        :param targets_A: Pandas dataframe for tumor samples
-        :param miRNAs_B: Pandas dataframe for normal  samples
-        :param targets_B: Pandas dataframe for normal samples
+        :param miRNAs_tumor: array of shape (n_samples, n_miRNAs) for tumor samples
+        :param targets_tumor: array of shape (n_samples, n_genes) for tumor samples
+        :param miRNAs_normal: array of shape (n_samples, n_miRNAs) for normal  samples
+        :param targets_normal: array of shape (n_samples, n_genes) for normal samples
         """
-        miRNAs = miRNAs_A.columns
-        targets = targets_B.columns
+        miRNAs = miRNAs_tumor.columns
+        targets = targets_normal.columns
         self.add_miRNA_nodes(miRNAs)
         self.add_target_nodes(targets)
 
-        n_A = miRNAs_A.shape[0]
-        n_B = miRNAs_B.shape[0]
+        n_A = miRNAs_tumor.shape[0]
+        n_B = miRNAs_normal.shape[0]
         print 'n_A', n_A
         print 'n_B', n_B
 
@@ -39,11 +39,13 @@ class miRNATargetNetwork:
             t = putative_assocs.ix[i]['Gene Symbol']
 
             if (m in miRNAs) and (t in targets):
-                miRNA_target_A_corr = np.dot(miRNAs_A[m] - np.mean(miRNAs_A[m]), targets_A[t] - np.mean(targets_A[t])) / \
-                                      ((n_A - 1) * np.std(miRNAs_A[m]) * np.std(targets_A[t]))
+                miRNA_target_A_corr = np.dot(miRNAs_tumor[m] - np.mean(miRNAs_tumor[m]),
+                                             targets_tumor[t] - np.mean(targets_tumor[t])) / \
+                                      ((n_A - 1) * np.std(miRNAs_tumor[m]) * np.std(targets_tumor[t]))
 
-                miRNA_target_B_corr = np.dot(miRNAs_B[m] - np.mean(miRNAs_B[m]), targets_B[t] - np.mean(targets_B[t])) / \
-                                      ((n_B - 1) * np.std(miRNAs_B[m]) * np.std(targets_B[t]))
+                miRNA_target_B_corr = np.dot(miRNAs_normal[m] - np.mean(miRNAs_normal[m]),
+                                             targets_normal[t] - np.mean(targets_normal[t])) / \
+                                      ((n_B - 1) * np.std(miRNAs_normal[m]) * np.std(targets_normal[t]))
 
                 dys = miRNA_target_A_corr - miRNA_target_B_corr
                 # print m, '<->', t, ':', dys
@@ -79,5 +81,10 @@ class miRNATargetNetwork:
                     #
                     #     print m, ':', edge_count
 
-    def add_edge(self, miRNA, target, dys):
-        self.B.add_edge(miRNA, target, dys=dys)
+    def get_miRNA_groups(self):
+        miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
+        targets_nodes = set(self.B) - miRNAs_nodes
+
+        edges = self.B.edges()
+        miRNAs_nodes_degrees = nx.bipartite.degrees(self.B, miRNAs_nodes)[1]
+        targets_nodes_degrees = nx.bipartite.degrees(self.B, targets_nodes)[1]
