@@ -45,6 +45,7 @@ def group_lasso(X, y, alpha, groups, max_iter=MAX_ITER, rtol=1e-6,
 
     # .. use integer indices for groups ..
     group_labels = [np.where(groups == i)[0] for i in np.unique(groups)]
+    # print "!!",group_labels
     H_groups = [np.dot(X[:, g].T, X[:, g]) for g in group_labels]
     eig = map(linalg.eigh, H_groups)
     Xy = np.dot(X.T, y)

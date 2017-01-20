@@ -1,3 +1,7 @@
+import os
+from definitions import ROOT_DIR
+
+VALIDATION_FILE_PATH = os.path.join(ROOT_DIR, 'data/external/TarBase_Experiment_Valid_miRNA-Targets.csv')
 
 def percent_candidate_in_validated(candidate_miRNAs, validated_miRNAs):
     """
