@@ -7,3 +7,5 @@ python-dotenv>=0.5.1
 numpy
 sklearn
 pandas
+spams
+matplotlib
