@@ -82,37 +82,36 @@ class miRNATargetNetwork:
                     #
                     #     print m, ':', edge_count
 
-    def get_miRNA_groups(self, mirna_list, larger_groups_first=True):
+    def get_miRNA_groups(self, mirna_list, larger_groups=True):
         miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
         targets_nodes = set(self.B) - miRNAs_nodes
 
-        edges = self.B.edges()
         targets_nodes_degrees = nx.bipartite.degrees(self.B, targets_nodes)[1]
 
         sorted_targets_nodes_degrees = sorted(targets_nodes_degrees.items(), key=operator.itemgetter(1),
-                                              reverse=larger_groups_first)
+                                              reverse=larger_groups)
 
-        mirna_groups = OrderedDict((miRNA, -1) for miRNA in mirna_list)
+        mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in mirna_list)
 
-        group_number = 1
         # For every target, find its neighbor miRNA's, which forms a group.
         # The miRNA's in a groups are then assigned a corresponding number
+        group_counter = 1
         for (target, n_neighbors) in sorted_targets_nodes_degrees:
             if n_neighbors > 1:
-                miRNA_group = self.B.neighbors(target)
-                for miRNA in miRNA_group:
-                    mirna_groups[miRNA] = group_number
-                group_number += 1
+                target_neighbors = self.B.neighbors(target)
+                for miRNA in target_neighbors:
+                    mirna_group_assg[miRNA] = group_counter
+                group_counter += 1
 
-        groups_unique = np.unique(mirna_groups.values())
-        group_number = 1
+        groups_unique = np.unique(mirna_group_assg.values())
+        group_counter = 1
 
         # Ensure the rest of the miRNAs not in groups to have unique group number, starting from 1
-        for miRNA, group_assg in mirna_groups.iteritems():
+        for miRNA, group_assg in mirna_group_assg.iteritems():
             if group_assg == -1:
-                while group_number in groups_unique:
-                    group_number += 1
-                mirna_groups[miRNA] = group_number
-                group_number += 1
+                while group_counter in groups_unique:
+                    group_counter += 1
+                mirna_group_assg[miRNA] = group_counter
+                group_counter += 1
 
-        return mirna_groups.values()
+        return mirna_group_assg.values()
