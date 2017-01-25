@@ -82,14 +82,14 @@ class miRNATargetNetwork:
                     #
                     #     print m, ':', edge_count
 
-    def get_miRNA_groups(self, mirna_list, larger_groups=True):
+    def get_miRNA_groups(self, mirna_list, smaller_groups=True):
         miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
         targets_nodes = set(self.B) - miRNAs_nodes
 
         targets_nodes_degrees = nx.bipartite.degrees(self.B, targets_nodes)[1]
 
         sorted_targets_nodes_degrees = sorted(targets_nodes_degrees.items(), key=operator.itemgetter(1),
-                                              reverse=larger_groups)
+                                              reverse=smaller_groups)
 
         mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in mirna_list)
 
