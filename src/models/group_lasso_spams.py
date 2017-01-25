@@ -11,7 +11,11 @@ class SPAMSClassifier:
         self.n_samples = X.shape[0]
         self.n_features = X.shape[1]
 
-        W0 = np.zeros((self.n_features, 1), dtype=np.float, order="F")
+        if params['loss'] == 'multi-logistic':
+            W0 = np.zeros((self.n_features, 1), dtype=np.float, order="F")
+        else:
+            W0 = np.zeros((self.n_features, len(np.unique(y))), dtype=np.float, order="F")
+
 
         if groups != None:
             W, optim_info = spams.fistaFlat(y, X, W0, True, groups=np.array(groups, dtype=np.int32), **params)

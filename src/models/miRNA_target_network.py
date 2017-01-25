@@ -92,6 +92,7 @@ class miRNATargetNetwork:
                                               reverse=smaller_groups)
 
         mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in mirna_list)
+        self.miRNA_groups = []
 
         # For every target, find its neighbor miRNA's, which forms a group.
         # The miRNA's in a groups are then assigned a corresponding number
@@ -99,6 +100,7 @@ class miRNATargetNetwork:
         for (target, n_neighbors) in sorted_targets_nodes_degrees:
             if n_neighbors > 1:
                 target_neighbors = self.B.neighbors(target)
+                self.miRNA_groups.append(target_neighbors)
                 for miRNA in target_neighbors:
                     mirna_group_assg[miRNA] = group_counter
                 group_counter += 1
@@ -115,3 +117,11 @@ class miRNATargetNetwork:
                 group_counter += 1
 
         return mirna_group_assg.values()
+
+    def find_miRNA_groups(self, miRNA):
+        groups = []
+        for group in self.miRNA_groups:
+            if miRNA in group:
+                groups.append(len(group))
+
+        return groups
