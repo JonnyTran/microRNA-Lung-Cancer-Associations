@@ -1,5 +1,6 @@
 import os
 from definitions import ROOT_DIR
+from operator import itemgetter
 
 VALIDATION_FILE_PATH = os.path.join(ROOT_DIR, 'data/external/TarBase_Experiment_Valid_miRNA-Targets.csv')
 
@@ -27,3 +28,7 @@ def precision_rate(candidate_miRNAs, validated_miRNAs):
 
 def intersection_miRNA(candidate_miRNAs, validated_miRNAs):
     return set(candidate_miRNAs) & set(validated_miRNAs)
+
+
+def get_miRNA_names(indices, mirna_list):
+    return itemgetter(*indices)(mirna_list)
