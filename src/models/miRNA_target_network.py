@@ -4,11 +4,15 @@ import networkx as nx
 from networkx.algorithms import bipartite
 from collections import OrderedDict
 import operator
+from multiprocessing import Pool
+
 
 class miRNATargetNetwork:
-    def __init__(self, dys_threshold=0.6):
+    def __init__(self, miRNAs, targets, dys_threshold=0.6):
         self.dys_threshold = dys_threshold
         self.B = nx.Graph()
+        self.add_miRNA_nodes(miRNAs)
+        self.add_target_nodes(targets)
 
     def add_miRNA_nodes(self, miRNAs):
         self.B.add_nodes_from(miRNAs, bipartite=0)
@@ -16,7 +20,7 @@ class miRNATargetNetwork:
     def add_target_nodes(self, targets):
         self.B.add_nodes_from(targets, bipartite=1)
 
-    def fit(self, miRNA_A, gene_A, miRNA_B, gene_B, putative_assocs):
+    def fit(self, miRNA_A, gene_A, miRNA_B, gene_B, putative_assocs, tag=""):
         """
         Constructing the MTDN from xu2011prioritizing
 
@@ -27,8 +31,6 @@ class miRNATargetNetwork:
         """
         miRNAs = miRNA_A.columns
         targets = gene_B.columns
-        # self.add_miRNA_nodes(miRNAs)
-        # self.add_target_nodes(targets)
 
         n_A = miRNA_A.shape[0]
         n_B = miRNA_B.shape[0]
@@ -36,6 +38,7 @@ class miRNATargetNetwork:
         print 'n_B', n_B
 
         edges_count = 0
+
 
         for i in putative_assocs.index:
             m = putative_assocs.ix[i]['MiRBase ID']
@@ -55,7 +58,7 @@ class miRNATargetNetwork:
 
                 if abs(dys) >= self.dys_threshold:
                     edges_count += 1
-                    self.B.add_edge(m, t, dys=dys)
+                    self.B.add_edge(m, t, dys=dys, tag=tag)
 
         return edges_count
 
