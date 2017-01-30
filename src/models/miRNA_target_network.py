@@ -82,7 +82,7 @@ class miRNATargetNetwork:
                     #
                     #     print m, ':', edge_count
 
-    def get_miRNA_groups(self, mirna_list, smaller_groups=True):
+    def get_miRNA_group_assgn(self, mirna_list, smaller_groups=True):
         miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
         targets_nodes = set(self.B) - miRNAs_nodes
 
@@ -123,8 +123,8 @@ class miRNATargetNetwork:
 
     def find_miRNA_groups(self, miRNA):
         groups = []
-        for group in self.miRNA_groups:
+        for i, group in enumerate(self.miRNA_groups):
             if miRNA in group:
-                groups.append(len(group))
+                groups.append(i)
 
         return groups
