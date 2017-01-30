@@ -16,71 +16,49 @@ class miRNATargetNetwork:
     def add_target_nodes(self, targets):
         self.B.add_nodes_from(targets, bipartite=1)
 
-    def train(self, miRNAs_tumor, targets_tumor, miRNAs_normal, targets_normal, putative_assocs):
+    def fit(self, miRNA_A, gene_A, miRNA_B, gene_B, putative_assocs):
         """
         Constructing the MTDN from xu2011prioritizing
 
-        :param miRNAs_tumor: array of shape (n_samples, n_miRNAs) for tumor samples
-        :param targets_tumor: array of shape (n_samples, n_genes) for tumor samples
-        :param miRNAs_normal: array of shape (n_samples, n_miRNAs) for normal  samples
-        :param targets_normal: array of shape (n_samples, n_genes) for normal samples
+        :param miRNA_A: array of shape (n_samples, n_miRNAs) for tumor samples
+        :param gene_A: array of shape (n_samples, n_genes) for tumor samples
+        :param miRNA_B: array of shape (n_samples, n_miRNAs) for normal  samples
+        :param gene_B: array of shape (n_samples, n_genes) for normal samples
         """
-        miRNAs = miRNAs_tumor.columns
-        targets = targets_normal.columns
-        self.add_miRNA_nodes(miRNAs)
-        self.add_target_nodes(targets)
+        miRNAs = miRNA_A.columns
+        targets = gene_B.columns
+        # self.add_miRNA_nodes(miRNAs)
+        # self.add_target_nodes(targets)
 
-        n_A = miRNAs_tumor.shape[0]
-        n_B = miRNAs_normal.shape[0]
+        n_A = miRNA_A.shape[0]
+        n_B = miRNA_B.shape[0]
         print 'n_A', n_A
         print 'n_B', n_B
+
+        edges_count = 0
 
         for i in putative_assocs.index:
             m = putative_assocs.ix[i]['MiRBase ID']
             t = putative_assocs.ix[i]['Gene Symbol']
 
             if (m in miRNAs) and (t in targets):
-                miRNA_target_A_corr = np.dot(miRNAs_tumor[m] - np.mean(miRNAs_tumor[m]),
-                                             targets_tumor[t] - np.mean(targets_tumor[t])) / \
-                                      ((n_A - 1) * np.std(miRNAs_tumor[m]) * np.std(targets_tumor[t]))
+                miRNA_gene_A_corr = np.dot(miRNA_A[m] - np.mean(miRNA_A[m]),
+                                           gene_A[t] - np.mean(gene_A[t])) / \
+                                    ((n_A - 1) * np.std(miRNA_A[m]) * np.std(gene_A[t]))
 
-                miRNA_target_B_corr = np.dot(miRNAs_normal[m] - np.mean(miRNAs_normal[m]),
-                                             targets_normal[t] - np.mean(targets_normal[t])) / \
-                                      ((n_B - 1) * np.std(miRNAs_normal[m]) * np.std(targets_normal[t]))
+                miRNA_gene_B_corr = np.dot(miRNA_B[m] - np.mean(miRNA_B[m]),
+                                           gene_B[t] - np.mean(gene_B[t])) / \
+                                    ((n_B - 1) * np.std(miRNA_B[m]) * np.std(gene_B[t]))
 
-                dys = miRNA_target_A_corr - miRNA_target_B_corr
+                dys = miRNA_gene_A_corr - miRNA_gene_B_corr
                 # print m, '<->', t, ':', dys
 
                 if abs(dys) >= self.dys_threshold:
+                    edges_count += 1
                     self.B.add_edge(m, t, dys=dys)
 
-                    # if miRNA_target_A_corr <= -self.dys_threshold:
-                    #     self.B.add_edge(m, t, tumor_corr=miRNA_target_A_corr)
-                    #
-                    # if miRNA_target_B_corr <= -self.dys_threshold:
-                    #     self.B.add_edge(m, t, tumor_corr=miRNA_target_B_corr)
+        return edges_count
 
-                    # for m in miRNAs:
-                    #     edge_count = 1
-                    #     miRNA_A_m = miRNAs_A[m] - np.mean(miRNAs_A[m])
-                    #     miRNA_B_m = miRNAs_B[m] - np.mean(miRNAs_B[m])
-                    #     miRNA_A_m_std = np.std(miRNAs_A[m])
-                    #     miRNA_B_m_std = np.std(miRNAs_B[m])
-                    #     for t in targets:
-                    #         miRNA_target_A_corr = np.dot(miRNA_A_m, targets_A[t] - np.mean(targets_A[t])) / \
-                    #                               ((n_A - 1) * miRNA_A_m_std * np.std(targets_A[t]))
-                    #
-                    #         miRNA_target_B_corr = np.dot(miRNA_B_m, targets_B[t] - np.mean(targets_B[t])) / \
-                    #                               ((n_B - 1) * miRNA_B_m_std * np.std(targets_B[t]))
-                    #
-                    #         dys = miRNA_target_A_corr - miRNA_target_B_corr
-                    #         # print m, '<->', t, ':', dys
-                    #
-                    #         if abs(dys) >= self.threshold:
-                    #             self.add_edge(m, t, dys=dys)
-                    #             edge_count += 1
-                    #
-                    #     print m, ':', edge_count
 
     def get_miRNA_group_assgn(self, mirna_list, smaller_groups=True):
         miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)

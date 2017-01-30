@@ -80,19 +80,15 @@ class TCGA_LUAD:
         self.gene_tumor = self.gene_tumor.iloc[:, i]
         self.gene_normal = self.gene_normal.iloc[:, i]
 
-        print self.mirna_tumor.shape, self.mirna_tumor.columns
-        print self.mirna_normal.shape, self.mirna_normal.columns
-        print self.gene_tumor.shape, self.gene_tumor.columns
-        print self.gene_normal.shape, self.gene_normal.columns
+        print 'mirna_tumor', self.mirna_tumor.shape
+        print 'mirna_normal', self.mirna_normal.shape
+        print 'gene_tumor', self.gene_tumor.shape
+        print 'gene_normal', self.gene_normal.shape
 
     def make_dataset(self, dataset="miRNA", normal_tumor='both', pathologic_stages=[], normal_matched=True,
                      mirna_gene_matched=True, label_mapping=None):
-        patients = pandas.concat([self.gene_tumor[['patient_barcode', 'pathologic_stage']],
-                                  self.gene_normal[['patient_barcode', 'pathologic_stage']],
-                                  self.mirna_tumor[['patient_barcode', 'pathologic_stage']],
-                                  self.mirna_normal[['patient_barcode', 'pathologic_stage']]]).drop_duplicates()
-        print 'All patients', patients.shape
 
+        # Find patients with both tumor and normal samples
         if normal_matched:
             if dataset is "miRNA":
                 patients = pandas.merge(self.mirna_tumor[['patient_barcode']],
@@ -110,23 +106,27 @@ class TCGA_LUAD:
                 patients = pandas.concat([self.gene_tumor[['patient_barcode']],
                                           self.gene_normal[['patient_barcode']]]).drop_duplicates()
 
+        # Find patients with matching miRNA and gene samples
         if mirna_gene_matched and normal_matched:
-            if dataset is "miRNA":
-                patients_B = pandas.merge(self.mirna_tumor[['patient_barcode']],
-                                          self.mirna_tumor[['patient_barcode']],
-                                          on='patient_barcode')
-            elif dataset is "gene":
-                patients_B = pandas.merge(self.gene_tumor[['patient_barcode']],
+            patients_normal = pandas.merge(self.mirna_normal[['patient_barcode']],
+                                           self.gene_normal[['patient_barcode']],
+                                           on='patient_barcode')
+            patients_tumor = pandas.merge(self.mirna_tumor[['patient_barcode']],
                                           self.gene_tumor[['patient_barcode']],
                                           on='patient_barcode')
+            patients = pandas.merge(patients_normal, patients_tumor, on='patient_barcode')
 
-            patients = pandas.merge(patients, patients_B, on='patient_barcode')
         elif mirna_gene_matched and not normal_matched:
-            print "Not Implemented"
-            return None
+            if normal_tumor is "normal":
+                patients = pandas.merge(self.mirna_normal[['patient_barcode']],
+                                        self.gene_normal[['patient_barcode']],
+                                        on='patient_barcode')
+            elif normal_tumor is "tumor":
+                patients = pandas.merge(self.mirna_tumor[['patient_barcode']],
+                                        self.gene_tumor[['patient_barcode']],
+                                        on='patient_barcode')
 
-        print "normal_matched", normal_matched, 'mirna_gene_matched', mirna_gene_matched, dataset, normal_tumor, patients.shape
-
+        # Return dataset, and perform pathologic stage relabling
         if dataset is 'miRNA':
             if normal_tumor is 'both':
                 return self.dataFrame_to_matrix(pandas.concat([self.mirna_tumor, self.mirna_normal]), patients,
@@ -149,15 +149,12 @@ class TCGA_LUAD:
                                                 pathologic_stages, label_mapping)
 
     def dataFrame_to_matrix(self, data, patients, pathologic_stages, label_mapping):
-        print 'data.shape', data.shape
         df = data[data['patient_barcode'].isin(patients['patient_barcode'])]
-        print 'df.shape', df.shape
-
         if pathologic_stages:
             df = df[df['pathologic_stage'].isin(pathologic_stages)]
 
         if label_mapping:
-            df = df['pathologic_stage'].replace(label_mapping)
+            df['pathologic_stage'] = df['pathologic_stage'].replace(label_mapping)
 
         X = df.drop(['patient_barcode', 'pathologic_stage'], axis=1)
         y = df['pathologic_stage']
@@ -173,7 +170,11 @@ class TCGA_LUAD:
 
 if __name__ == '__main__':
     tgca_luad = TCGA_LUAD()
-    X, y = tgca_luad.make_dataset(dataset='miRNA', normal_tumor='both', normal_matched=False, mirna_gene_matched=False,
+    # pathologic_stage_map = {'Stage I': 1, 'Stage II': 1}
+    X, y = tgca_luad.make_dataset(dataset='miRNA', normal_tumor='tumor', normal_matched=False, mirna_gene_matched=True,
                                   pathologic_stages=[])
     print "X", X.shape
     print "y", y.shape
+
+    print tgca_luad.make_dataset(dataset='gene', normal_tumor='tumor', normal_matched=False, mirna_gene_matched=True)[
+        0].shape
