@@ -37,8 +37,7 @@ class miRNATargetNetwork:
         print 'n_A', n_A
         print 'n_B', n_B
 
-        edges_count = 0
-
+        edges_added = 0
 
         for i in putative_assocs.index:
             m = putative_assocs.ix[i]['MiRBase ID']
@@ -57,10 +56,10 @@ class miRNATargetNetwork:
                 # print m, '<->', t, ':', dys
 
                 if abs(dys) >= self.dys_threshold:
-                    edges_count += 1
                     self.B.add_edge(m, t, dys=dys, tag=tag)
+                    edges_added += 1
 
-        return edges_count
+        return edges_added
 
 
     def get_miRNA_group_assgn(self, mirna_list, smaller_groups=True):
