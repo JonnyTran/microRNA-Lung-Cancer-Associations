@@ -11,6 +11,7 @@ class miRNATargetNetwork:
     def __init__(self, miRNAs, targets, dys_threshold=0.6):
         self.dys_threshold = dys_threshold
         self.B = nx.Graph()
+        self.mirna_list = miRNAs.tolist()
         self.add_miRNA_nodes(miRNAs)
         self.add_target_nodes(targets)
 
@@ -61,8 +62,15 @@ class miRNATargetNetwork:
 
         return edges_added
 
+    def get_miRNA_features(self):
+        miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
+        targets_nodes = set(self.B) - miRNAs_nodes
 
-    def get_miRNA_group_assgn(self, mirna_list, smaller_groups=True):
+        targets_nodes_degrees = nx.bipartite.degrees(self.B, targets_nodes)[1]
+
+        edges = self.B.edges()
+
+    def get_miRNA_group_assgn(self, smaller_groups=True):
         miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
         targets_nodes = set(self.B) - miRNAs_nodes
 
@@ -71,7 +79,7 @@ class miRNATargetNetwork:
         sorted_targets_nodes_degrees = sorted(targets_nodes_degrees.items(), key=operator.itemgetter(1),
                                               reverse=smaller_groups)
 
-        mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in mirna_list)
+        mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in self.mirna_list)
         self.miRNA_groups = []
         self.miRNA_groups_int = []
 
@@ -82,7 +90,7 @@ class miRNATargetNetwork:
             if n_neighbors > 1:
                 target_neighbors = self.B.neighbors(target)
                 self.miRNA_groups.append(target_neighbors)
-                self.miRNA_groups_int.append([mirna_list.index(miRNA) for miRNA in target_neighbors])
+                self.miRNA_groups_int.append([self.mirna_list.index(miRNA) for miRNA in target_neighbors])
 
                 for miRNA in target_neighbors:
                     mirna_group_assg[miRNA] = group_counter
