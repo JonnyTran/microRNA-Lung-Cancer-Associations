@@ -4,14 +4,16 @@ import networkx as nx
 from networkx.algorithms import bipartite
 from collections import OrderedDict
 import operator
+import pandas
 from multiprocessing import Pool
-
+from sklearn.cluster import AgglomerativeClustering
 
 class miRNATargetNetwork:
     def __init__(self, miRNAs, targets, dys_threshold=0.6):
         self.dys_threshold = dys_threshold
-        self.B = nx.Graph()
-        self.mirna_list = miRNAs.tolist()
+        self.B = nx.DiGraph()
+        self.mirna_list = miRNAs
+        self.genes_list = targets
         self.add_miRNA_nodes(miRNAs)
         self.add_target_nodes(targets)
 
@@ -62,13 +64,67 @@ class miRNATargetNetwork:
 
         return edges_added
 
-    def get_miRNA_features(self):
-        miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
-        targets_nodes = set(self.B) - miRNAs_nodes
+    def build_miRNA_features(self):
+        tags = ['normal-StgI', 'StgI-StgII', 'StgII-StgIII', 'StgIII-StgIV']
 
-        targets_nodes_degrees = nx.bipartite.degrees(self.B, targets_nodes)[1]
+        normal_stgI_genes = np.unique(
+            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == 'normal-StgI']).tolist()
+        stgI_StgII_genes = np.unique(
+            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == 'StgI-StgII']).tolist()
+        stgII_StgIII_genes = np.unique(
+            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == 'StgII-StgIII']).tolist()
+        stgIII_StgIV_genes = np.unique(
+            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == 'StgIII-StgIV']).tolist()
+        miRNAs_in_MTDN = np.unique([tup[0] for tup in self.B.edges()])
 
-        edges = self.B.edges()
+        print 'normal_stgI_genes', len(normal_stgI_genes)
+        print 'stgI_StgII_genes', len(stgI_StgII_genes)
+        print 'stgII_StgIII_genes', len(stgII_StgIII_genes)
+        print 'stgIII_StgIV_genes', len(stgIII_StgIV_genes)
+        print 'miRNAs_in_MTDN', len(miRNAs_in_MTDN)
+
+        normal_stgI_genes_names = [gene + '/normal-StgI' for gene in normal_stgI_genes]
+        stgI_StgII_genes_names = [gene + '/StgI-StgII' for gene in stgI_StgII_genes]
+        stgII_StgIII_genes = [gene + '/StgII-StgIII' for gene in stgII_StgIII_genes]
+        stgIII_StgIV_genes = [gene + '/StgIII-StgIV' for gene in stgIII_StgIV_genes]
+
+        self.miRNA_target_assn_matrix = pandas.DataFrame(columns=normal_stgI_genes_names +
+                                                                 stgI_StgII_genes_names +
+                                                                 stgII_StgIII_genes +
+                                                                 stgIII_StgIV_genes)
+
+        for miRNA in miRNAs_in_MTDN:
+            self.miRNA_target_assn_matrix.loc[miRNA] = 0
+
+        for edge in self.B.edges(data=True):
+            self.miRNA_target_assn_matrix.loc[edge[0]][edge[1] + '/' + edge[2]['tag']] = 1
+
+    def run_miRNA_clustering(self, n_cluster=20, linkage='complete'):
+
+        mirna_cluster = AgglomerativeClustering(n_clusters=n_cluster, affinity='l1', linkage=linkage).fit(
+            self.miRNA_target_assn_matrix)
+        print np.bincount(mirna_cluster.fit_predict(self.miRNA_target_assn_matrix))
+        self.miRNA_cluster_assgn = mirna_cluster.fit_predict(self.miRNA_target_assn_matrix)
+
+    def get_miRNA_cluster_assgn(self):
+        mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in self.mirna_list)
+
+        for mirna, cluster_assgn in zip(self.miRNA_target_assn_matrix.index,
+                                        self.miRNA_cluster_assgn):
+            mirna_group_assg[mirna] = cluster_assgn
+
+        groups_unique = np.unique(mirna_group_assg.values())
+        group_counter = 1
+
+        # Ensure the rest of the miRNAs not in groups to have unique group number, starting from 1
+        for miRNA, group_assg in mirna_group_assg.iteritems():
+            if group_assg == -1:
+                while group_counter in groups_unique:
+                    group_counter += 1
+                mirna_group_assg[miRNA] = group_counter
+                group_counter += 1
+
+        return mirna_group_assg.values()
 
     def get_miRNA_group_assgn(self, smaller_groups=True):
         miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
