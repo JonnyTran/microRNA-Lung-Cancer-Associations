@@ -106,6 +106,14 @@ class miRNATargetNetwork:
         print np.bincount(mirna_cluster.fit_predict(self.miRNA_target_assn_matrix))
         self.miRNA_cluster_assgn = mirna_cluster.fit_predict(self.miRNA_target_assn_matrix)
 
+        self.miRNA_clusters_int = []
+        for cluster_idx in range(20):
+            self.miRNA_clusters_int.append([])
+            for mirna in [self.miRNA_target_assn_matrix.index[mirna_idx]
+                          for mirna_idx, cluster_assg in enumerate(self.miRNA_cluster_assgn) if
+                          cluster_assg == cluster_idx]:
+                self.miRNA_clusters_int[cluster_idx].append(self.mirna_list.index(mirna))
+
     def get_miRNA_cluster_assgn(self):
         mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in self.mirna_list)
 
