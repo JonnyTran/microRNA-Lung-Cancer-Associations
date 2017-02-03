@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas
 import numpy as np
 import networkx as nx
 from networkx.algorithms import bipartite
@@ -6,7 +6,9 @@ from collections import OrderedDict
 import operator
 import pandas
 from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 from sklearn.cluster import AgglomerativeClustering
+from multiprocessing import Manager
 
 class miRNATargetNetwork:
     def __init__(self, miRNAs, targets, dys_threshold=0.6):
@@ -32,35 +34,74 @@ class miRNATargetNetwork:
         :param miRNA_B: array of shape (n_samples, n_miRNAs) for normal  samples
         :param gene_B: array of shape (n_samples, n_genes) for normal samples
         """
-        miRNAs = miRNA_A.columns
-        targets = gene_B.columns
-
         n_A = miRNA_A.shape[0]
         n_B = miRNA_B.shape[0]
         print 'n_A', n_A
         print 'n_B', n_B
 
+        # mgr = Manager()
+        # ns = mgr.Namespace()
+        # ns.putative_assocs = putative_assocs
+        # ns.dys_threshold = self.dys_threshold
+        # ns.miRNA_A = miRNA_A
+        # ns.gene_A = gene_A
+        # ns.miRNA_B = miRNA_B
+        # ns.gene_B = gene_B
+        # ns.n_A = n_A
+        # ns.n_B = n_B
+        # ns.tag = tag
+        #
+        # def test(i):
+        #     m = ns.putative_assocs.ix[i]['MiRBase ID']
+        #     t = ns.putative_assocs.ix[i]['Gene Symbol']
+        #
+        #     miRNA_gene_A_corr = np.dot(ns.miRNA_A[m] - np.mean(ns.miRNA_A[m]),
+        #                                ns.gene_A[t] - np.mean(ns.gene_A[t])) / \
+        #                         ((n_A - 1) * np.std(ns.miRNA_A[m]) * np.std(ns.gene_A[t]))
+        #
+        #     miRNA_gene_B_corr = np.dot(ns.miRNA_B[m] - np.mean(ns.miRNA_B[m]),
+        #                                ns.gene_B[t] - np.mean(ns.gene_B[t])) / \
+        #                         ((n_B - 1) * np.std(ns.miRNA_B[m]) * np.std(ns.gene_B[t]))
+        #
+        #     dys = miRNA_gene_A_corr - miRNA_gene_B_corr
+        #     # print m, '<->', t, ':', dys
+        #
+        #     if abs(dys) >= ns.dys_threshold:
+        #         return (m, t, dys, ns.tag)
+        #
+        # pool = Pool(8)
+        # results = pool.map(test, putative_assocs.index.tolist())
+        #
+        # edges_added = 0
+        # for tup in results:
+        #     if tup:
+        #         edges_added += 1
+        #         print tup
+        #         self.B.add_edge(tup[0], tup[1], dys=tup[2], tag=tup[3])
+
+
         edges_added = 0
+        for row in putative_assocs.iterrows():
+            m = row[1]['MiRBase ID']
+            t = row[1]['Gene Symbol']
 
-        for i in putative_assocs.index:
-            m = putative_assocs.ix[i]['MiRBase ID']
-            t = putative_assocs.ix[i]['Gene Symbol']
+            miRNA_gene_A_corr = np.dot(miRNA_A[m] - np.mean(miRNA_A[m]),
+                                       gene_A[t] - np.mean(gene_A[t])) / \
+                                ((n_A - 1) * np.std(miRNA_A[m]) * np.std(gene_A[t]))
 
-            if (m in miRNAs) and (t in targets):
-                miRNA_gene_A_corr = np.dot(miRNA_A[m] - np.mean(miRNA_A[m]),
-                                           gene_A[t] - np.mean(gene_A[t])) / \
-                                    ((n_A - 1) * np.std(miRNA_A[m]) * np.std(gene_A[t]))
+            miRNA_gene_B_corr = np.dot(miRNA_B[m] - np.mean(miRNA_B[m]),
+                                       gene_B[t] - np.mean(gene_B[t])) / \
+                                ((n_B - 1) * np.std(miRNA_B[m]) * np.std(gene_B[t]))
 
-                miRNA_gene_B_corr = np.dot(miRNA_B[m] - np.mean(miRNA_B[m]),
-                                           gene_B[t] - np.mean(gene_B[t])) / \
-                                    ((n_B - 1) * np.std(miRNA_B[m]) * np.std(gene_B[t]))
+            dys = miRNA_gene_A_corr - miRNA_gene_B_corr
+            # print m, '<->', t, ':', dys
 
-                dys = miRNA_gene_A_corr - miRNA_gene_B_corr
-                # print m, '<->', t, ':', dys
+            if abs(miRNA_gene_A_corr) > 1.0 or abs(miRNA_gene_B_corr) > 1.0:
+                print 'we got a problem', miRNA_gene_A_corr, miRNA_gene_B_corr
 
-                if abs(dys) >= self.dys_threshold:
-                    self.B.add_edge(m, t, dys=dys, tag=tag)
-                    edges_added += 1
+            if abs(dys) >= self.dys_threshold:
+                self.B.add_edge(m, t, dys=dys, tag=tag)
+                edges_added += 1
 
         return edges_added
 
@@ -107,7 +148,7 @@ class miRNATargetNetwork:
         self.miRNA_cluster_assgn = mirna_cluster.fit_predict(self.miRNA_target_assn_matrix)
 
         self.miRNA_clusters_int = []
-        for cluster_idx in range(20):
+        for cluster_idx in range(n_cluster):
             self.miRNA_clusters_int.append([])
             for mirna in [self.miRNA_target_assn_matrix.index[mirna_idx]
                           for mirna_idx, cluster_assg in enumerate(self.miRNA_cluster_assgn) if
