@@ -144,7 +144,6 @@ class miRNATargetNetwork:
 
         mirna_cluster = AgglomerativeClustering(n_clusters=n_cluster, affinity='l1', linkage=linkage).fit(
             self.miRNA_target_assn_matrix)
-        print np.bincount(mirna_cluster.fit_predict(self.miRNA_target_assn_matrix))
         self.miRNA_cluster_assgn = mirna_cluster.fit_predict(self.miRNA_target_assn_matrix)
 
         self.miRNA_clusters_int = []
@@ -154,6 +153,8 @@ class miRNATargetNetwork:
                           for mirna_idx, cluster_assg in enumerate(self.miRNA_cluster_assgn) if
                           cluster_assg == cluster_idx]:
                 self.miRNA_clusters_int[cluster_idx].append(self.mirna_list.index(mirna))
+
+        return np.bincount(mirna_cluster.fit_predict(self.miRNA_target_assn_matrix))
 
     def get_miRNA_cluster_assgn(self):
         mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in self.mirna_list)
