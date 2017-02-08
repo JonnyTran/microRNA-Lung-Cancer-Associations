@@ -3,7 +3,7 @@ import os
 import pandas
 from definitions import ROOT_DIR
 import numpy as np
-
+from sklearn import preprocessing
 
 class TCGA_LUAD:
     def __init__(self):
@@ -86,7 +86,7 @@ class TCGA_LUAD:
         print 'gene_normal', self.gene_normal.shape
 
     def make_dataset(self, dataset="miRNA", normal_tumor='both', pathologic_stages=[], normal_matched=True,
-                     mirna_gene_matched=True, label_mapping=None):
+                     mirna_gene_matched=True, label_mapping=None, zero_mean=False, normalize=False):
 
         # Find patients with both tumor and normal samples
         if normal_matched:
@@ -130,25 +130,25 @@ class TCGA_LUAD:
         if dataset is 'miRNA':
             if normal_tumor is 'both':
                 return self.dataFrame_to_matrix(pandas.concat([self.mirna_tumor, self.mirna_normal]), patients,
-                                                pathologic_stages, label_mapping)
+                                                pathologic_stages, label_mapping, zero_mean, normalize)
             elif normal_tumor is 'normal':
                 return self.dataFrame_to_matrix(self.mirna_normal, patients,
-                                                pathologic_stages, label_mapping)
+                                                pathologic_stages, label_mapping, zero_mean, normalize)
             elif normal_tumor is 'tumor':
                 return self.dataFrame_to_matrix(self.mirna_tumor, patients,
-                                                pathologic_stages, label_mapping)
+                                                pathologic_stages, label_mapping, zero_mean, normalize)
         elif dataset is 'gene':
             if normal_tumor is 'both':
                 return self.dataFrame_to_matrix(pandas.concat([self.gene_tumor, self.gene_normal]), patients,
-                                                pathologic_stages, label_mapping)
+                                                pathologic_stages, label_mapping, zero_mean, normalize)
             elif normal_tumor is 'normal':
                 return self.dataFrame_to_matrix(self.gene_normal, patients,
-                                                pathologic_stages, label_mapping)
+                                                pathologic_stages, label_mapping, zero_mean, normalize)
             elif normal_tumor is 'tumor':
                 return self.dataFrame_to_matrix(self.gene_tumor, patients,
-                                                pathologic_stages, label_mapping)
+                                                pathologic_stages, label_mapping, zero_mean, normalize)
 
-    def dataFrame_to_matrix(self, data, patients, pathologic_stages, label_mapping):
+    def dataFrame_to_matrix(self, data, patients, pathologic_stages, label_mapping, zero_mean=False, normalize=False):
         df = data[data['patient_barcode'].isin(patients['patient_barcode'])]
         if pathologic_stages:
             df = df[df['pathologic_stage'].isin(pathologic_stages)]
@@ -158,6 +158,13 @@ class TCGA_LUAD:
 
         X = df.drop(['patient_barcode', 'pathologic_stage'], axis=1)
         y = df['pathologic_stage']
+
+        if normalize:
+            for col in X.columns:
+                X[col] = (X[col] - X[col].mean()) / X[col].std(0)
+        elif zero_mean:
+            for col in X.columns:
+                X[col] = X[col] - X[col].mean()
 
         return X, y
 

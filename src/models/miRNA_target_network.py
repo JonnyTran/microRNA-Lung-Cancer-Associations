@@ -39,51 +39,14 @@ class miRNATargetNetwork:
         print 'n_A', n_A
         print 'n_B', n_B
 
-        # mgr = Manager()
-        # ns = mgr.Namespace()
-        # ns.putative_assocs = putative_assocs
-        # ns.dys_threshold = self.dys_threshold
-        # ns.miRNA_A = miRNA_A
-        # ns.gene_A = gene_A
-        # ns.miRNA_B = miRNA_B
-        # ns.gene_B = gene_B
-        # ns.n_A = n_A
-        # ns.n_B = n_B
-        # ns.tag = tag
-        #
-        # def test(i):
-        #     m = ns.putative_assocs.ix[i]['MiRBase ID']
-        #     t = ns.putative_assocs.ix[i]['Gene Symbol']
-        #
-        #     miRNA_gene_A_corr = np.dot(ns.miRNA_A[m] - np.mean(ns.miRNA_A[m]),
-        #                                ns.gene_A[t] - np.mean(ns.gene_A[t])) / \
-        #                         ((n_A - 1) * np.std(ns.miRNA_A[m]) * np.std(ns.gene_A[t]))
-        #
-        #     miRNA_gene_B_corr = np.dot(ns.miRNA_B[m] - np.mean(ns.miRNA_B[m]),
-        #                                ns.gene_B[t] - np.mean(ns.gene_B[t])) / \
-        #                         ((n_B - 1) * np.std(ns.miRNA_B[m]) * np.std(ns.gene_B[t]))
-        #
-        #     dys = miRNA_gene_A_corr - miRNA_gene_B_corr
-        #     # print m, '<->', t, ':', dys
-        #
-        #     if abs(dys) >= ns.dys_threshold:
-        #         return (m, t, dys, ns.tag)
-        #
-        # pool = Pool(8)
-        # results = pool.map(test, putative_assocs.index.tolist())
-        #
-        # edges_added = 0
-        # for tup in results:
-        #     if tup:
-        #         edges_added += 1
-        #         print tup
-        #         self.B.add_edge(tup[0], tup[1], dys=tup[2], tag=tup[3])
-
-
         edges_added = 0
         for row in putative_assocs.iterrows():
             m = row[1]['MiRBase ID']
             t = row[1]['Gene Symbol']
+
+            if (type(m) is not str) or (type(t) is not str):
+                print m, '<->', t
+                continue
 
             miRNA_gene_A_corr = np.dot(miRNA_A[m] - np.mean(miRNA_A[m]),
                                        gene_A[t] - np.mean(gene_A[t])) / \
@@ -94,12 +57,11 @@ class miRNATargetNetwork:
                                 ((n_B - 1) * np.std(miRNA_B[m]) * np.std(gene_B[t]))
 
             dys = miRNA_gene_A_corr - miRNA_gene_B_corr
-            # print m, '<->', t, ':', dys
 
             if abs(miRNA_gene_A_corr) > 1.0 or abs(miRNA_gene_B_corr) > 1.0:
-                print 'we got a problem', miRNA_gene_A_corr, miRNA_gene_B_corr
+                continue
 
-            if abs(dys) >= self.dys_threshold:
+            if abs(dys) >= self.dys_threshold and (abs(miRNA_gene_A_corr) > 0.3 or abs(miRNA_gene_B_corr) > 0.3):
                 self.B.add_edge(m, t, dys=dys, tag=tag)
                 edges_added += 1
 
@@ -109,20 +71,20 @@ class miRNATargetNetwork:
         tags = ['normal-StgI', 'StgI-StgII', 'StgII-StgIII', 'StgIII-StgIV']
 
         normal_stgI_genes = np.unique(
-            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == 'normal-StgI']).tolist()
+            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == tags[0]]).tolist()
         stgI_StgII_genes = np.unique(
-            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == 'StgI-StgII']).tolist()
+            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == tags[1]]).tolist()
         stgII_StgIII_genes = np.unique(
-            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == 'StgII-StgIII']).tolist()
+            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == tags[2]]).tolist()
         stgIII_StgIV_genes = np.unique(
-            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == 'StgIII-StgIV']).tolist()
+            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == tags[3]]).tolist()
         miRNAs_in_MTDN = np.unique([tup[0] for tup in self.B.edges()])
 
+        print 'miRNAs_in_MTDN', len(miRNAs_in_MTDN)
         print 'normal_stgI_genes', len(normal_stgI_genes)
         print 'stgI_StgII_genes', len(stgI_StgII_genes)
         print 'stgII_StgIII_genes', len(stgII_StgIII_genes)
         print 'stgIII_StgIV_genes', len(stgIII_StgIV_genes)
-        print 'miRNAs_in_MTDN', len(miRNAs_in_MTDN)
 
         normal_stgI_genes_names = [gene + '/normal-StgI' for gene in normal_stgI_genes]
         stgI_StgII_genes_names = [gene + '/StgI-StgII' for gene in stgI_StgII_genes]
@@ -138,11 +100,19 @@ class miRNATargetNetwork:
             self.miRNA_target_assn_matrix.loc[miRNA] = 0
 
         for edge in self.B.edges(data=True):
-            self.miRNA_target_assn_matrix.loc[edge[0]][edge[1] + '/' + edge[2]['tag']] = 1
+            def f(x):
+                return {
+                    'normal-StgI': 1.0 / len(normal_stgI_genes),
+                    'StgI-StgII': 1.0 / len(stgI_StgII_genes),
+                    'StgII-StgIII': 1.0 / len(stgII_StgIII_genes),
+                    'StgIII-StgIV': 1.0 / len(stgIII_StgIV_genes),
+                }[x]
 
-    def run_miRNA_clustering(self, n_cluster=20, linkage='complete'):
+            self.miRNA_target_assn_matrix.loc[edge[0]][edge[1] + '/' + edge[2]['tag']] = f(edge[2]['tag'])
 
-        mirna_cluster = AgglomerativeClustering(n_clusters=n_cluster, affinity='l1', linkage=linkage).fit(
+    def run_miRNA_clustering(self, n_cluster=20, affinity='manhattan', linkage='complete'):
+
+        mirna_cluster = AgglomerativeClustering(n_clusters=n_cluster, affinity=affinity, linkage=linkage).fit(
             self.miRNA_target_assn_matrix)
         self.miRNA_cluster_assgn = mirna_cluster.fit_predict(self.miRNA_target_assn_matrix)
 
