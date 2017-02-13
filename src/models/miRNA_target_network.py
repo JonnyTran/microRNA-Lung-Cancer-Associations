@@ -1,14 +1,13 @@
-import pandas
-import numpy as np
-import networkx as nx
-from networkx.algorithms import bipartite
-from collections import OrderedDict
 import operator
+from collections import OrderedDict
+
+import dask.dataframe as dd
+import networkx as nx
+import numpy as np
 import pandas
-from multiprocessing import Pool
-from multiprocessing.pool import ThreadPool
+from dask.multiprocessing import get
 from sklearn.cluster import AgglomerativeClustering
-from multiprocessing import Manager
+
 
 class miRNATargetNetwork:
     def __init__(self, miRNAs, targets, dys_threshold=0.6):
@@ -25,7 +24,7 @@ class miRNATargetNetwork:
     def add_target_nodes(self, targets):
         self.B.add_nodes_from(targets, bipartite=1)
 
-    def fit(self, miRNA_A, gene_A, miRNA_B, gene_B, putative_assocs, tag=""):
+    def fit(self, miRNA_A, gene_A, miRNA_B, gene_B, putative_assocs, dys_threshold=0.6, tag="A-B"):
         """
         Constructing the MTDN from xu2011prioritizing
 
@@ -40,32 +39,74 @@ class miRNATargetNetwork:
         print 'n_B', n_B
 
         edges_added = 0
-        for row in putative_assocs.iterrows():
-            m = row[1]['MiRBase ID']
-            t = row[1]['Gene Symbol']
 
-            if (type(m) is not str) or (type(t) is not str):
-                print m, '<->', t
-                continue
+        putative_dd = dd.from_pandas(putative_assocs, npartitions=7)
 
-            miRNA_gene_A_corr = np.dot(miRNA_A[m] - np.mean(miRNA_A[m]),
-                                       gene_A[t] - np.mean(gene_A[t])) / \
-                                ((n_A - 1) * np.std(miRNA_A[m]) * np.std(gene_A[t]))
+        def calc_dys_A_B(df):
+            result = []
+            for row in df.iterrows():
+                m = row[1]['MiRBase ID']
+                t = row[1]['Gene Symbol']
+                miRNA_gene_A_corr = np.dot(miRNA_A[m] - np.mean(miRNA_A[m]),
+                                           gene_A[t] - np.mean(gene_A[t])) / \
+                                    ((n_A - 1) * np.std(miRNA_A[m]) * np.std(gene_A[t]))
+                miRNA_gene_B_corr = np.dot(miRNA_B[m] - np.mean(miRNA_B[m]),
+                                           gene_B[t] - np.mean(gene_B[t])) / \
+                                    ((n_B - 1) * np.std(miRNA_B[m]) * np.std(gene_B[t]))
+                dys = miRNA_gene_A_corr - miRNA_gene_B_corr
 
-            miRNA_gene_B_corr = np.dot(miRNA_B[m] - np.mean(miRNA_B[m]),
-                                       gene_B[t] - np.mean(gene_B[t])) / \
-                                ((n_B - 1) * np.std(miRNA_B[m]) * np.std(gene_B[t]))
+                if abs(dys) >= dys_threshold:
+                    result.append((m, t, dys))
+            return result
 
-            dys = miRNA_gene_A_corr - miRNA_gene_B_corr
+        res = putative_dd.map_partitions(calc_dys_A_B, meta=putative_dd).compute(get=get)
 
-            if abs(miRNA_gene_A_corr) > 1.0 or abs(miRNA_gene_B_corr) > 1.0:
-                continue
-
-            if abs(dys) >= self.dys_threshold and (abs(miRNA_gene_A_corr) > 0.3 or abs(miRNA_gene_B_corr) > 0.3):
-                self.B.add_edge(m, t, dys=dys, tag=tag)
+        for res_partition in res:
+            for tup in res_partition:
+                self.B.add_edge(tup[0], tup[1], dys=tup[2], tag=tag)
                 edges_added += 1
 
         return edges_added
+
+        # if putative_assocs is not None:
+        #     for row in putative_assocs.iterrows():
+        #         m = row[1]['MiRBase ID']
+        #         t = row[1]['Gene Symbol']
+        #
+        #         if (type(m) is not str) or (type(t) is not str):
+        #             print m, '<->', t
+        #             continue
+        #
+        #         dys = calc_dys_A_B(gene_A, gene_B, m, miRNA_A, miRNA_B, n_A, n_B, t)
+        #
+        #         if abs(dys) >= dys_threshold:
+        #             self.B.add_edge(m, t, dys=dys, tag=tag)
+        #             edges_added += 1
+        #
+        # else:
+        #     for m in self.mirna_list:
+        #         m_A = miRNA_A[m] - np.mean(miRNA_A[m])
+        #         m_B = miRNA_B[m] - np.mean(miRNA_B[m])
+        #         std_A = np.std(miRNA_A[m])
+        #         std_B = np.std(miRNA_B[m])
+        #         for t in self.genes_list:
+        #             miRNA_gene_A_corr = np.dot(m_A,
+        #                                        gene_A[t] - np.mean(gene_A[t])) / \
+        #                                 ((n_A - 1) * std_A * np.std(gene_A[t]))
+        #
+        #             miRNA_gene_B_corr = np.dot(m_B,
+        #                                        gene_B[t] - np.mean(gene_B[t])) / \
+        #                                 ((n_B - 1) * std_B * np.std(gene_B[t]))
+        #
+        #             dys = miRNA_gene_A_corr - miRNA_gene_B_corr
+        #
+        #             if abs(dys) >= dys_threshold and (abs(miRNA_gene_A_corr) > 0.3 or abs(miRNA_gene_B_corr) > 0.3):
+        #                 self.B.add_edge(m, t, dys=dys, tag=tag)
+        #                 edges_added += 1
+
+        # return edges_added
+
+
 
     def build_miRNA_features(self):
         tags = ['normal-StgI', 'StgI-StgII', 'StgII-StgIII', 'StgIII-StgIV']
@@ -101,12 +142,14 @@ class miRNATargetNetwork:
 
         for edge in self.B.edges(data=True):
             def f(x):
-                return {
-                    'normal-StgI': 1.0 / len(normal_stgI_genes),
-                    'StgI-StgII': 1.0 / len(stgI_StgII_genes),
-                    'StgII-StgIII': 1.0 / len(stgII_StgIII_genes),
-                    'StgIII-StgIV': 1.0 / len(stgIII_StgIV_genes),
-                }[x]
+                dict = {}
+
+                for tag, tag_genes in zip(tags, [normal_stgI_genes, stgI_StgII_genes, stgII_StgIII_genes,
+                                                 stgIII_StgIV_genes]):
+                    if len(tag_genes):
+                        dict[tag] = 1.0 / len(tag_genes)
+
+                return dict[x]
 
             self.miRNA_target_assn_matrix.loc[edge[0]][edge[1] + '/' + edge[2]['tag']] = f(edge[2]['tag'])
 
