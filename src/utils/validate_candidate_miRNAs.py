@@ -1,6 +1,7 @@
 import os
-from definitions import ROOT_DIR
 from operator import itemgetter
+
+from definitions import ROOT_DIR
 
 VALIDATION_FILE_PATH = os.path.join(ROOT_DIR, 'data/external/TarBase_Experiment_Valid_miRNA-Targets.csv')
 
@@ -30,5 +31,10 @@ def intersection_miRNA(candidate_miRNAs, validated_miRNAs):
     return set(candidate_miRNAs) & set(validated_miRNAs)
 
 
-def get_miRNA_names(indices, mirna_list):
+def get_miRNA_names(indices, mirna_list, miR_name=False):
+    if miR_name:
+        result = list(itemgetter(*indices)(mirna_list))
+        for i in range(len(result)):
+            result[i] = result[i].replace('hsa-', '')
+        return result
     return itemgetter(*indices)(mirna_list)

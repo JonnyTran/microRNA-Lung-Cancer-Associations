@@ -125,12 +125,10 @@ class miRNATargetNetwork:
         for edge in self.B.edges(data=True):
             def f(x):
                 dict = {}
-
                 for tag, tag_genes in zip(tags, [normal_stgI_genes, stgI_StgII_genes, stgII_StgIII_genes,
                                                  stgIII_StgIV_genes]):
                     if len(tag_genes):
                         dict[tag] = 1.0 / len(tag_genes)
-
                 return dict[x]
 
             self.miRNA_target_assn_matrix.loc[edge[0]][edge[1] + '/' + edge[2]['tag']] = f(edge[2]['tag'])
@@ -149,7 +147,7 @@ class miRNATargetNetwork:
                           cluster_assg == cluster_idx]:
                 self.miRNA_clusters_int[cluster_idx].append(self.mirna_list.index(mirna))
 
-        return np.bincount(mirna_cluster.fit_predict(self.miRNA_target_assn_matrix))
+        return np.bincount(mirna_cluster.labels_)
 
     def get_miRNA_cluster_assgn(self):
         mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in self.mirna_list)
