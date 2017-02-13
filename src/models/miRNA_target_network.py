@@ -24,7 +24,7 @@ class miRNATargetNetwork:
     def add_target_nodes(self, targets):
         self.B.add_nodes_from(targets, bipartite=1)
 
-    def fit(self, miRNA_A, gene_A, miRNA_B, gene_B, putative_assocs, dys_threshold=0.6, tag="A-B"):
+    def fit(self, miRNA_A, gene_A, miRNA_B, gene_B, putative_assocs, dys_threshold=0.6, tag="A-B", n_jobs=5):
         """
         Constructing the MTDN from xu2011prioritizing
 
@@ -39,72 +39,54 @@ class miRNATargetNetwork:
         print 'n_B', n_B
 
         edges_added = 0
+        if putative_assocs is not None:
+            putative_dd = dd.from_pandas(putative_assocs, npartitions=n_jobs)
 
-        putative_dd = dd.from_pandas(putative_assocs, npartitions=7)
+            def calc_dys_A_B(df):
+                result = []
+                for row in df.iterrows():
+                    m = row[1]['MiRBase ID']
+                    t = row[1]['Gene Symbol']
+                    miRNA_gene_A_corr = np.dot(miRNA_A[m] - np.mean(miRNA_A[m]),
+                                               gene_A[t] - np.mean(gene_A[t])) / \
+                                        ((n_A - 1) * np.std(miRNA_A[m]) * np.std(gene_A[t]))
+                    miRNA_gene_B_corr = np.dot(miRNA_B[m] - np.mean(miRNA_B[m]),
+                                               gene_B[t] - np.mean(gene_B[t])) / \
+                                        ((n_B - 1) * np.std(miRNA_B[m]) * np.std(gene_B[t]))
+                    dys = miRNA_gene_A_corr - miRNA_gene_B_corr
 
-        def calc_dys_A_B(df):
-            result = []
-            for row in df.iterrows():
-                m = row[1]['MiRBase ID']
-                t = row[1]['Gene Symbol']
-                miRNA_gene_A_corr = np.dot(miRNA_A[m] - np.mean(miRNA_A[m]),
-                                           gene_A[t] - np.mean(gene_A[t])) / \
-                                    ((n_A - 1) * np.std(miRNA_A[m]) * np.std(gene_A[t]))
-                miRNA_gene_B_corr = np.dot(miRNA_B[m] - np.mean(miRNA_B[m]),
-                                           gene_B[t] - np.mean(gene_B[t])) / \
-                                    ((n_B - 1) * np.std(miRNA_B[m]) * np.std(gene_B[t]))
-                dys = miRNA_gene_A_corr - miRNA_gene_B_corr
+                    if abs(dys) >= dys_threshold:
+                        result.append((m, t, dys))
+                return result
 
-                if abs(dys) >= dys_threshold:
-                    result.append((m, t, dys))
-            return result
+            res = putative_dd.map_partitions(calc_dys_A_B, meta=putative_dd).compute(get=get)
 
-        res = putative_dd.map_partitions(calc_dys_A_B, meta=putative_dd).compute(get=get)
+            for res_partition in res:
+                for tup in res_partition:
+                    self.B.add_edge(tup[0], tup[1], dys=tup[2], tag=tag)
+                    edges_added += 1
+        else:
+            for m in self.mirna_list:
+                m_A = miRNA_A[m] - np.mean(miRNA_A[m])
+                m_B = miRNA_B[m] - np.mean(miRNA_B[m])
+                std_A = np.std(miRNA_A[m])
+                std_B = np.std(miRNA_B[m])
+                for t in self.genes_list:
+                    miRNA_gene_A_corr = np.dot(m_A,
+                                               gene_A[t] - np.mean(gene_A[t])) / \
+                                        ((n_A - 1) * std_A * np.std(gene_A[t]))
 
-        for res_partition in res:
-            for tup in res_partition:
-                self.B.add_edge(tup[0], tup[1], dys=tup[2], tag=tag)
-                edges_added += 1
+                    miRNA_gene_B_corr = np.dot(m_B,
+                                               gene_B[t] - np.mean(gene_B[t])) / \
+                                        ((n_B - 1) * std_B * np.std(gene_B[t]))
+
+                    dys = miRNA_gene_A_corr - miRNA_gene_B_corr
+
+                    if abs(dys) >= dys_threshold and (abs(miRNA_gene_A_corr) > 0.3 or abs(miRNA_gene_B_corr) > 0.3):
+                        self.B.add_edge(m, t, dys=dys, tag=tag)
+                        edges_added += 1
 
         return edges_added
-
-        # if putative_assocs is not None:
-        #     for row in putative_assocs.iterrows():
-        #         m = row[1]['MiRBase ID']
-        #         t = row[1]['Gene Symbol']
-        #
-        #         if (type(m) is not str) or (type(t) is not str):
-        #             print m, '<->', t
-        #             continue
-        #
-        #         dys = calc_dys_A_B(gene_A, gene_B, m, miRNA_A, miRNA_B, n_A, n_B, t)
-        #
-        #         if abs(dys) >= dys_threshold:
-        #             self.B.add_edge(m, t, dys=dys, tag=tag)
-        #             edges_added += 1
-        #
-        # else:
-        #     for m in self.mirna_list:
-        #         m_A = miRNA_A[m] - np.mean(miRNA_A[m])
-        #         m_B = miRNA_B[m] - np.mean(miRNA_B[m])
-        #         std_A = np.std(miRNA_A[m])
-        #         std_B = np.std(miRNA_B[m])
-        #         for t in self.genes_list:
-        #             miRNA_gene_A_corr = np.dot(m_A,
-        #                                        gene_A[t] - np.mean(gene_A[t])) / \
-        #                                 ((n_A - 1) * std_A * np.std(gene_A[t]))
-        #
-        #             miRNA_gene_B_corr = np.dot(m_B,
-        #                                        gene_B[t] - np.mean(gene_B[t])) / \
-        #                                 ((n_B - 1) * std_B * np.std(gene_B[t]))
-        #
-        #             dys = miRNA_gene_A_corr - miRNA_gene_B_corr
-        #
-        #             if abs(dys) >= dys_threshold and (abs(miRNA_gene_A_corr) > 0.3 or abs(miRNA_gene_B_corr) > 0.3):
-        #                 self.B.add_edge(m, t, dys=dys, tag=tag)
-        #                 edges_added += 1
-
-        # return edges_added
 
 
 
