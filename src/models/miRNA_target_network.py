@@ -5,13 +5,13 @@ import dask.dataframe as dd
 import networkx as nx
 import numpy as np
 import pandas
+import scipy.stats
 from dask.multiprocessing import get
 from sklearn.cluster import AgglomerativeClustering
 
 
 class miRNATargetNetwork:
-    def __init__(self, miRNAs, targets, dys_threshold=0.6):
-        self.dys_threshold = dys_threshold
+    def __init__(self, miRNAs, targets):
         self.B = nx.DiGraph()
         self.mirna_list = miRNAs
         self.genes_list = targets
@@ -24,7 +24,7 @@ class miRNATargetNetwork:
     def add_target_nodes(self, targets):
         self.B.add_nodes_from(targets, bipartite=1)
 
-    def fit(self, miRNA_A, gene_A, miRNA_B, gene_B, putative_assocs, dys_threshold=0.6, tag="A-B", n_jobs=5):
+    def fit(self, miRNA_A, gene_A, miRNA_B, gene_B, putative_assocs, p_threshold=0.001, tag="A-B", n_jobs=5):
         """
         Constructing the MTDN from xu2011prioritizing
 
@@ -54,9 +54,10 @@ class miRNATargetNetwork:
                                                gene_B[t] - np.mean(gene_B[t])) / \
                                         ((n_B - 1) * np.std(miRNA_B[m]) * np.std(gene_B[t]))
                     dys = miRNA_gene_A_corr - miRNA_gene_B_corr
+                    p_value = self.z_to_p_value(self.fisher_r_to_z(miRNA_gene_A_corr, n_A, miRNA_gene_B_corr, n_B))
 
-                    if abs(dys) >= dys_threshold:
-                        result.append((m, t, dys))
+                    if p_value <= p_threshold:
+                        result.append((m, t, p_value))
                 return result
 
             res = putative_dd.map_partitions(calc_dys_A_B, meta=putative_dd).compute(get=get)
@@ -65,6 +66,7 @@ class miRNATargetNetwork:
                 for tup in res_partition:
                     self.B.add_edge(tup[0], tup[1], dys=tup[2], tag=tag)
                     edges_added += 1
+        ## Iterate through every miRNA-gene associations
         else:
             for m in self.mirna_list:
                 m_A = miRNA_A[m] - np.mean(miRNA_A[m])
@@ -82,13 +84,30 @@ class miRNATargetNetwork:
 
                     dys = miRNA_gene_A_corr - miRNA_gene_B_corr
 
-                    if abs(dys) >= dys_threshold and (abs(miRNA_gene_A_corr) > 0.3 or abs(miRNA_gene_B_corr) > 0.3):
+                    if abs(dys) >= p_threshold and (abs(miRNA_gene_A_corr) > 0.3 or abs(miRNA_gene_B_corr) > 0.3):
                         self.B.add_edge(m, t, dys=dys, tag=tag)
                         edges_added += 1
 
         return edges_added
 
+    def fisher_r_to_z(self, r_A, n_A, r_B, n_B):
+        r_A_plus = 1.0 * r_A + 1
+        r_A_minus = 1.0 - r_A
+        r_B_plus = 1.0 * r_B + 1
+        r_B_minus = 1.0 - r_B
 
+        z_A = (np.log(r_A_plus) - np.log(r_A_minus)) / 2.0
+        z_B = (np.log(r_B_plus) - np.log(r_B_minus)) / 2.0
+
+        se = np.sqrt((1.0 / (n_A - 3)) + (1.0 / (n_B - 3)))
+        z = (z_A - z_B) / se
+        return z
+
+    def z_to_p_value(self, z, two_sided=True):
+        if two_sided:
+            return scipy.stats.norm.sf(abs(z)) * 2
+        else:
+            return scipy.stats.norm.sf(abs(z))
 
     def build_miRNA_features(self):
         tags = ['normal-StgI', 'StgI-StgII', 'StgII-StgIII', 'StgIII-StgIV']
