@@ -14,6 +14,8 @@ def recall_rate(candidate_miRNAs, validated_miRNAs):
     :param validated_miRNAs: a list of validated miRNAs code names
     :return: a percentage
     """
+    if len(candidate_miRNAs) == 0:
+        return None
     return float(len(intersection_miRNA(candidate_miRNAs, validated_miRNAs))) / len(validated_miRNAs)
 
 
@@ -25,6 +27,8 @@ def precision_rate(candidate_miRNAs, validated_miRNAs):
     :param validated_miRNAs: a list of validated miRNAs code names
     :return: a percentage
     """
+    if len(candidate_miRNAs) == 0:
+        return None
     return float(len(intersection_miRNA(candidate_miRNAs, validated_miRNAs))) / len(candidate_miRNAs)
 
 def intersection_miRNA(candidate_miRNAs, validated_miRNAs):

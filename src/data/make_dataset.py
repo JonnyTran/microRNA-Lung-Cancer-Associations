@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
+
+import numpy as np
 import pandas
 from definitions import ROOT_DIR
-import numpy as np
-from sklearn import preprocessing
+from sklearn.feature_selection import SelectFdr, f_classif
+
 
 class TCGA_LUAD:
     def __init__(self):
@@ -18,8 +20,8 @@ class TCGA_LUAD:
         self.mirna_tumor = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage']], mirna_tumor_df,
                                         on='patient_barcode')
 
-        self.mirna_tumor.dropna(inplace=True)
-        self.mirna_normal.dropna(inplace=True)
+        self.mirna_tumor.dropna(axis=0, inplace=True)
+        self.mirna_normal.dropna(axis=0, inplace=True)
 
         pathologic_stage_map = {'Stage IA': 'Stage I', 'Stage IB': 'Stage I',
                                 'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
@@ -64,8 +66,8 @@ class TCGA_LUAD:
         self.gene_tumor['patient_barcode'] = self.gene_tumor.index
         self.gene_normal['patient_barcode'] = self.gene_normal.index
 
-        self.gene_tumor.dropna(inplace=True)
-        self.gene_normal.dropna(inplace=True)
+        self.gene_tumor.dropna(axis=0, inplace=True)
+        self.gene_normal.dropna(axis=0, inplace=True)
 
         self.gene_normal = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage']], self.gene_normal,
                                         on='patient_barcode')
@@ -84,6 +86,21 @@ class TCGA_LUAD:
         print 'mirna_normal', self.mirna_normal.shape
         print 'gene_tumor', self.gene_tumor.shape
         print 'gene_normal', self.gene_normal.shape
+
+    def gene_univariate_feature_selection(self, alpha=0.01):
+        gene_normal_X, gene_normal_Y = self.make_dataset(dataset='gene', normal_tumor='normal',
+                                                         normal_matched=True, mirna_gene_matched=True)
+        gene_tumor_X, gene_tumor_Y = self.make_dataset(dataset='gene', normal_tumor='tumor', normal_matched=True,
+                                                       mirna_gene_matched=True)
+
+        gene_exp_filter = SelectFdr(f_classif, alpha=alpha)
+        gen_exp_new = gene_exp_filter.fit_transform(X=pandas.concat([gene_normal_X, gene_tumor_X]),
+                                                    y=pandas.concat([gene_normal_Y, gene_tumor_Y]))
+
+        self.gene_symbols = np.asanyarray(self.gene_symbols)[gene_exp_filter.get_support(indices=True)].tolist()
+        self.gene_tumor = self.gene_tumor[self.gene_symbols + ['patient_barcode', 'pathologic_stage']]
+        self.gene_normal = self.gene_normal[self.gene_symbols + ['patient_barcode', 'pathologic_stage']]
+
 
     def make_dataset(self, dataset="miRNA", normal_tumor='both', pathologic_stages=[], normal_matched=True,
                      mirna_gene_matched=True, label_mapping=None, zero_mean=False, normalize=False):

@@ -219,7 +219,7 @@ class miRNATargetNetwork:
 
         # Ensure the rest of the miRNAs not in groups to have unique group number, starting from 1
         for miRNA, group_assg in mirna_group_assg.iteritems():
-            if group_assg == -1:
+            if group_assg == -1 or group_assg == 0:
                 while group_counter in groups_unique:
                     group_counter += 1
                 mirna_group_assg[miRNA] = group_counter
