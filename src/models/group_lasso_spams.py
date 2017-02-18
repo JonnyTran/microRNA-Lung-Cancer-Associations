@@ -16,11 +16,19 @@ class LRSGLWrapper(BaseEstimator, ClassifierMixin):
         self.max_iter = max_iter
 
     def fit(self, X, y):
-        self.model = estimators.LogisticRegressionL1L2GL(l1=self.l1, l2=self.l2, gl=self.gl, A=self.A,
+
+        if self.A is not None:
+            self.model = estimators.LogisticRegressionL1L2GL(l1=self.l1, l2=self.l2, gl=self.gl, A=self.A,
                                                          algorithm=algorithms.proximal.FISTA(),
                                                          class_weight='auto',
                                                          algorithm_params=dict(max_iter=self.max_iter),
                                                          mean=False)
+        else:
+            self.model = estimators.LassoLogisticRegression(l=self.l1,
+                                                            algorithm=algorithms.proximal.FISTA(),
+                                                            class_weight='auto',
+                                                            algorithm_params=dict(max_iter=self.max_iter),
+                                                            mean=False)
         beta = start_vectors.ZerosStartVector().get_vector(X.shape[1])
         self.model.fit(X, y, beta=beta)
         return self
@@ -29,7 +37,11 @@ class LRSGLWrapper(BaseEstimator, ClassifierMixin):
         return self.model.predict(X)
 
     def predict_proba(self, X):
-        prob = np.hstack((0, self.model.predict_probability(X)))
+        prob = np.hstack((1 - self.model.predict_probability(X), self.model.predict_probability(X)))
+        return prob
+
+    def decision_function(self, X):
+        prob = np.hstack((self.model.predict_probability(X), 1 - self.model.predict_probability(X)))
         return prob
 
 
