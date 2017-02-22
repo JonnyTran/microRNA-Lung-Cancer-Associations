@@ -44,6 +44,25 @@ class LRSGLWrapper(BaseEstimator, ClassifierMixin):
         prob = np.hstack((self.model.predict_probability(X), 1 - self.model.predict_probability(X)))
         return prob
 
+    @staticmethod
+    def get_selected_miRNAs(estimators_, mirna_list, criteria='max_abs'):
+        all_beta = estimators_[0].model.beta
+        for estimator in estimators_[1:]:
+            all_beta = np.hstack((all_beta, estimator.model.beta))
+
+        if criteria is 'max_abs':
+            selected_miRNAs = pandas.DataFrame(
+                [(mirna_list[i], max(all_beta[i].max(), all_beta[i].min(), key=abs)) for i in
+                 np.unique(all_beta.nonzero()[0])],
+                columns=['miRNA', 'coef'])
+        elif criteria is 'intersection':
+            selected_miRNAs = pandas.DataFrame(
+                [(mirna_list[i], max(all_beta[i].max(), all_beta[i].min(), key=abs)) for i in
+                 np.unique(all_beta.nonzero()[0])],
+                columns=['miRNA', 'coef'])
+
+        return selected_miRNAs
+
 
 class SPAMSClassifier:
     def __init__(self):
