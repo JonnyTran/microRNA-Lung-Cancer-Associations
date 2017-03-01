@@ -9,28 +9,31 @@ from sklearn.feature_selection import SelectFdr, f_classif
 
 class TCGA_LUAD:
     def __init__(self):
+        pathologic_stage_map = {'Stage IA': 'Stage I', 'Stage IB': 'Stage I',
+                                'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
+                                'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
+
         # miRNA
         mirna_tumor_df = pandas.read_csv(os.path.join(ROOT_DIR, "data/processed/miRNA/tumor_miRNA.csv"))
         mirna_normal_df = pandas.read_csv(os.path.join(ROOT_DIR, "data/processed/miRNA/normal_miRNA.csv"))
         self.clinical_df = pandas.read_csv(os.path.join(ROOT_DIR, "data/processed/clinical/clinical.csv"))
 
-        self.mirna_normal = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage']], mirna_normal_df,
+        self.mirna_normal = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage', 'histological_type']],
+                                         mirna_normal_df,
                                          on='patient_barcode')
         self.mirna_normal['pathologic_stage'] = 'normal'
-        self.mirna_tumor = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage']], mirna_tumor_df,
+        self.mirna_tumor = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage', 'histological_type']],
+                                        mirna_tumor_df,
                                         on='patient_barcode')
 
         self.mirna_tumor.dropna(axis=0, inplace=True)
         self.mirna_normal.dropna(axis=0, inplace=True)
 
-        pathologic_stage_map = {'Stage IA': 'Stage I', 'Stage IB': 'Stage I',
-                                'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
-                                'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
         self.mirna_tumor.replace({'pathologic_stage': pathologic_stage_map}, inplace=True)
 
         self.mirna_list = list(self.mirna_tumor.columns)[2:]
 
-        # Gene Expression
+        ########################################### Gene Expression ####################################################
         gene_tumor_df = pandas.read_table(
             os.path.join(ROOT_DIR, 'data/processed/gene_expression/tumor/READ__illuminahiseq_rnaseqv2__GeneExp.txt'),
             header=0, delimiter='\t')
@@ -69,10 +72,12 @@ class TCGA_LUAD:
         self.gene_tumor.dropna(axis=0, inplace=True)
         self.gene_normal.dropna(axis=0, inplace=True)
 
-        self.gene_normal = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage']], self.gene_normal,
+        self.gene_normal = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage', 'histological_type']],
+                                        self.gene_normal,
                                         on='patient_barcode')
         self.gene_normal['pathologic_stage'] = 'normal'
-        self.gene_tumor = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage']], self.gene_tumor,
+        self.gene_tumor = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage', 'histological_type']],
+                                       self.gene_tumor,
                                        on='patient_barcode')
 
         self.gene_tumor.replace({'pathologic_stage': pathologic_stage_map}, inplace=True)
@@ -98,12 +103,27 @@ class TCGA_LUAD:
                                                     y=pandas.concat([gene_normal_Y, gene_tumor_Y]))
 
         self.gene_symbols = np.asanyarray(self.gene_symbols)[gene_exp_filter.get_support(indices=True)].tolist()
-        self.gene_tumor = self.gene_tumor[self.gene_symbols + ['patient_barcode', 'pathologic_stage']]
-        self.gene_normal = self.gene_normal[self.gene_symbols + ['patient_barcode', 'pathologic_stage']]
+        self.gene_tumor = self.gene_tumor[
+            self.gene_symbols + ['patient_barcode', 'pathologic_stage', 'histological_type']]
+        self.gene_normal = self.gene_normal[
+            self.gene_symbols + ['patient_barcode', 'pathologic_stage', 'histological_type']]
 
+    def make_dataset(self, dataset="miRNA", normal_tumor='both', pathologic_stages=[], histological_types=[],
+                     normal_matched=True,
+                     mirna_gene_matched=True, stage_label_mapping=None, zero_mean=False, normalize=False):
+        """
 
-    def make_dataset(self, dataset="miRNA", normal_tumor='both', pathologic_stages=[], normal_matched=True,
-                     mirna_gene_matched=True, label_mapping=None, zero_mean=False, normalize=False):
+        :param dataset:
+        :param normal_tumor:
+        :param pathologic_stages:
+        :param histological_types:
+        :param normal_matched:
+        :param mirna_gene_matched:
+        :param stage_label_mapping:
+        :param zero_mean:
+        :param normalize:
+        :return:
+        """
 
         # Find patients with both tumor and normal samples
         if normal_matched:
@@ -147,33 +167,43 @@ class TCGA_LUAD:
         if dataset is 'miRNA':
             if normal_tumor is 'both':
                 return self.dataFrame_to_matrix(pandas.concat([self.mirna_tumor, self.mirna_normal]), patients,
-                                                pathologic_stages, label_mapping, zero_mean, normalize)
+                                                pathologic_stages, histological_types, stage_label_mapping, zero_mean,
+                                                normalize)
             elif normal_tumor is 'normal':
                 return self.dataFrame_to_matrix(self.mirna_normal, patients,
-                                                pathologic_stages, label_mapping, zero_mean, normalize)
+                                                pathologic_stages, histological_types, stage_label_mapping, zero_mean,
+                                                normalize)
             elif normal_tumor is 'tumor':
                 return self.dataFrame_to_matrix(self.mirna_tumor, patients,
-                                                pathologic_stages, label_mapping, zero_mean, normalize)
+                                                pathologic_stages, histological_types, stage_label_mapping, zero_mean,
+                                                normalize)
         elif dataset is 'gene':
             if normal_tumor is 'both':
                 return self.dataFrame_to_matrix(pandas.concat([self.gene_tumor, self.gene_normal]), patients,
-                                                pathologic_stages, label_mapping, zero_mean, normalize)
+                                                pathologic_stages, histological_types, stage_label_mapping, zero_mean,
+                                                normalize)
             elif normal_tumor is 'normal':
                 return self.dataFrame_to_matrix(self.gene_normal, patients,
-                                                pathologic_stages, label_mapping, zero_mean, normalize)
+                                                pathologic_stages, histological_types, stage_label_mapping, zero_mean,
+                                                normalize)
             elif normal_tumor is 'tumor':
                 return self.dataFrame_to_matrix(self.gene_tumor, patients,
-                                                pathologic_stages, label_mapping, zero_mean, normalize)
+                                                pathologic_stages, histological_types, stage_label_mapping, zero_mean,
+                                                normalize)
 
-    def dataFrame_to_matrix(self, data, patients, pathologic_stages, label_mapping, zero_mean=False, normalize=False):
+    def dataFrame_to_matrix(self, data, patients, pathologic_stages, histological_types, stage_label_mapping,
+                            zero_mean=False, normalize=False):
         df = data[data['patient_barcode'].isin(patients['patient_barcode'])]
         if pathologic_stages:
             df = df[df['pathologic_stage'].isin(pathologic_stages)]
 
-        if label_mapping:
-            df['pathologic_stage'] = df['pathologic_stage'].replace(label_mapping)
+        if histological_types:
+            df = df[df['histological_type'].isin(histological_types)]
 
-        X = df.drop(['patient_barcode', 'pathologic_stage'], axis=1)
+        if stage_label_mapping:
+            df['pathologic_stage'] = df['pathologic_stage'].replace(stage_label_mapping)
+
+        X = df.drop(['patient_barcode', 'pathologic_stage', 'histological_type'], axis=1)
         y = df['pathologic_stage']
 
         if normalize:
