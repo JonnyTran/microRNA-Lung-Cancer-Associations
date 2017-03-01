@@ -39,8 +39,9 @@ class TCGA_LUAD:
                                         mirna_tumor_df,
                                         on='patient_barcode')
 
-        # self.mirna_tumor.dropna(axis=0, inplace=True)
-        # self.mirna_normal.dropna(axis=0, inplace=True)
+        # Drop NA rows
+        self.mirna_tumor.dropna(axis=0, inplace=True)
+        self.mirna_normal.dropna(axis=0, inplace=True)
 
         self.mirna_tumor.replace({'pathologic_stage': pathologic_stage_map}, inplace=True)
         self.mirna_tumor.replace({'histological_type': histological_type_map}, inplace=True)
@@ -83,8 +84,9 @@ class TCGA_LUAD:
         self.gene_tumor['patient_barcode'] = self.gene_tumor.index
         self.gene_normal['patient_barcode'] = self.gene_normal.index
 
-        # self.gene_tumor.dropna(axis=0, inplace=True)
-        # self.gene_normal.dropna(axis=0, inplace=True)
+        # Drop NA rows
+        self.gene_tumor.dropna(axis=0, inplace=True)
+        self.gene_normal.dropna(axis=0, inplace=True)
 
         self.gene_normal = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage', 'histological_type']],
                                         self.gene_normal,

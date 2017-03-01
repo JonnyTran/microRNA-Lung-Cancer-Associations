@@ -15,20 +15,20 @@ class LRSGLWrapper(BaseEstimator, ClassifierMixin):
         self.A = A
         self.max_iter = max_iter
 
-    def fit(self, X, y):
-
         if self.A is not None:
             self.model = estimators.LogisticRegressionL1L2GL(l1=self.l1, l2=self.l2, gl=self.gl, A=self.A,
-                                                         algorithm=algorithms.proximal.FISTA(),
-                                                         class_weight='auto',
-                                                         algorithm_params=dict(max_iter=self.max_iter),
-                                                         mean=False)
+                                                             algorithm=algorithms.proximal.FISTA(),
+                                                             class_weight='auto',
+                                                             algorithm_params=dict(max_iter=self.max_iter),
+                                                             mean=False)
         else:
             self.model = estimators.LassoLogisticRegression(l=self.l1,
                                                             algorithm=algorithms.proximal.FISTA(),
                                                             class_weight='auto',
                                                             algorithm_params=dict(max_iter=self.max_iter),
                                                             mean=False)
+
+    def fit(self, X, y):
         beta = start_vectors.ZerosStartVector().get_vector(X.shape[1])
         self.model.fit(X, y, beta=beta)
         return self
