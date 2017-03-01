@@ -109,34 +109,22 @@ class miRNATargetNetwork:
         else:
             return scipy.stats.norm.sf(abs(z))
 
-    def build_miRNA_features(self):
-        tags = ['normal-StgI', 'StgI-StgII', 'StgII-StgIII', 'StgIII-StgIV']
+    def build_miRNA_features(self, tags):
+        dys_gene = OrderedDict()
+        for tag in tags:
+            dys_gene[tag] = np.unique([tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == tag]).tolist()
 
-        normal_stgI_genes = np.unique(
-            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == tags[0]]).tolist()
-        stgI_StgII_genes = np.unique(
-            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == tags[1]]).tolist()
-        stgII_StgIII_genes = np.unique(
-            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == tags[2]]).tolist()
-        stgIII_StgIV_genes = np.unique(
-            [tup[1] for tup in self.B.edges(data=True) if tup[2]['tag'] == tags[3]]).tolist()
         miRNAs_in_MTDN = np.unique([tup[0] for tup in self.B.edges()])
-
         print 'miRNAs_in_MTDN', len(miRNAs_in_MTDN)
-        print 'normal_stgI_genes', len(normal_stgI_genes)
-        print 'stgI_StgII_genes', len(stgI_StgII_genes)
-        print 'stgII_StgIII_genes', len(stgII_StgIII_genes)
-        print 'stgIII_StgIV_genes', len(stgIII_StgIV_genes)
+        for tag, genes in dys_gene.iteritems():
+            print 'genes dysregulated in ', tag, len(genes)
 
-        normal_stgI_genes_names = [gene + '/normal-StgI' for gene in normal_stgI_genes]
-        stgI_StgII_genes_names = [gene + '/StgI-StgII' for gene in stgI_StgII_genes]
-        stgII_StgIII_genes = [gene + '/StgII-StgIII' for gene in stgII_StgIII_genes]
-        stgIII_StgIV_genes = [gene + '/StgIII-StgIV' for gene in stgIII_StgIV_genes]
+        genes_names = []
+        for tag, genes in dys_gene.iteritems():
+            for gene in genes:
+                genes_names.append(gene + '/' + tag)
 
-        self.miRNA_target_assn_matrix = pandas.DataFrame(columns=normal_stgI_genes_names +
-                                                                 stgI_StgII_genes_names +
-                                                                 stgII_StgIII_genes +
-                                                                 stgIII_StgIV_genes)
+        self.miRNA_target_assn_matrix = pandas.DataFrame(columns=genes_names)
 
         for miRNA in miRNAs_in_MTDN:
             self.miRNA_target_assn_matrix.loc[miRNA] = 0
@@ -144,10 +132,9 @@ class miRNATargetNetwork:
         for edge in self.B.edges(data=True):
             def f(x):
                 dict = {}
-                for tag, tag_genes in zip(tags, [normal_stgI_genes, stgI_StgII_genes, stgII_StgIII_genes,
-                                                 stgIII_StgIV_genes]):
-                    if len(tag_genes):
-                        dict[tag] = 1.0 / len(tag_genes)
+                for tag, genes in dys_gene.iteritems():
+                    if len(genes):
+                        dict[tag] = 1.0 / len(genes)
                 return dict[x]
 
             self.miRNA_target_assn_matrix.loc[edge[0]][edge[1] + '/' + edge[2]['tag']] = f(edge[2]['tag'])

@@ -13,6 +13,19 @@ class TCGA_LUAD:
                                 'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
                                 'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
+        histological_type_map = {'Lung Acinar Adenocarcinoma': 'Acinar',
+                                 'Lung Adenocarcinoma Mixed Subtype': 'Mixed Subtype',
+                                 'Lung Adenocarcinoma- Not Otherwise Specified (NOS)': 'NOS',
+                                 'Lung Bronchioloalveolar Carcinoma Mucinous': 'Bronchioloalveolar',
+                                 'Lung Bronchioloalveolar Carcinoma Nonmucinous': 'Bronchioloalveolar',
+                                 'Lung Clear Cell Adenocarcinoma': 'Clear Cell',
+                                 'Lung Micropapillary Adenocarcinoma': 'Micropapillary',
+                                 'Lung Papillary Adenocarcinoma': 'Papillary',
+                                 'Lung Mucinous Adenocarcinoma': 'Mucinous',
+                                 'Lung Signet Ring Adenocarcinoma': 'Signet Ring',
+                                 'Lung Solid Pattern Predominant Adenocarcinoma': 'Solid',
+                                 'Mucinous (Colloid) Carcinoma': 'Colloid'}
+
         # miRNA
         mirna_tumor_df = pandas.read_csv(os.path.join(ROOT_DIR, "data/processed/miRNA/tumor_miRNA.csv"))
         mirna_normal_df = pandas.read_csv(os.path.join(ROOT_DIR, "data/processed/miRNA/normal_miRNA.csv"))
@@ -26,12 +39,13 @@ class TCGA_LUAD:
                                         mirna_tumor_df,
                                         on='patient_barcode')
 
-        self.mirna_tumor.dropna(axis=0, inplace=True)
-        self.mirna_normal.dropna(axis=0, inplace=True)
+        # self.mirna_tumor.dropna(axis=0, inplace=True)
+        # self.mirna_normal.dropna(axis=0, inplace=True)
 
         self.mirna_tumor.replace({'pathologic_stage': pathologic_stage_map}, inplace=True)
-
-        self.mirna_list = list(self.mirna_tumor.columns)[2:]
+        self.mirna_tumor.replace({'histological_type': histological_type_map}, inplace=True)
+        print self.mirna_tumor.columns
+        self.mirna_list = list(self.mirna_tumor.columns)[3:]
 
         ########################################### Gene Expression ####################################################
         gene_tumor_df = pandas.read_table(
@@ -69,8 +83,8 @@ class TCGA_LUAD:
         self.gene_tumor['patient_barcode'] = self.gene_tumor.index
         self.gene_normal['patient_barcode'] = self.gene_normal.index
 
-        self.gene_tumor.dropna(axis=0, inplace=True)
-        self.gene_normal.dropna(axis=0, inplace=True)
+        # self.gene_tumor.dropna(axis=0, inplace=True)
+        # self.gene_normal.dropna(axis=0, inplace=True)
 
         self.gene_normal = pandas.merge(self.clinical_df[['patient_barcode', 'pathologic_stage', 'histological_type']],
                                         self.gene_normal,
@@ -81,6 +95,9 @@ class TCGA_LUAD:
                                        on='patient_barcode')
 
         self.gene_tumor.replace({'pathologic_stage': pathologic_stage_map}, inplace=True)
+        self.gene_tumor.replace({'histological_type': histological_type_map}, inplace=True)
+
+        print self.gene_tumor['histological_type'].value_counts().sort_index(axis=0)
 
         # Drop duplicate columns names (Gene symbols with same name)
         _, i = np.unique(self.gene_tumor.columns, return_index=True)
