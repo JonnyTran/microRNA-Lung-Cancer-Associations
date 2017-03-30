@@ -1,6 +1,8 @@
+import copy
 import operator
 from collections import OrderedDict
 
+import community  # python-louvain
 import dask.dataframe as dd
 import networkx as nx
 import numpy as np
@@ -108,6 +110,44 @@ class miRNATargetNetwork:
             return scipy.stats.norm.sf(abs(z)) * 2
         else:
             return scipy.stats.norm.sf(abs(z))
+
+    def build_miRNA_similarity_graph(self):
+        self.G = copy.deepcopy(self.B.to_undirected())
+        self.G.remove_nodes_from(nx.isolates(self.G))
+
+        miRNAs_nodes = set(n for n, d in g.nodes(data=True) if d['bipartite'] == 0)
+        targets_nodes = set(g) - miRNAs_nodes
+        print 'mirnas', len(miRNAs_nodes)
+        print 'targets', len(targets_nodes)
+        print 'edges', len(g.edges())
+
+        for m_i in miRNAs_nodes:
+            for m_j in miRNAs_nodes:
+                if (m_i is not m_j) and not (g.has_edge(m_i, m_j)):
+                    common_neighbors = sorted(nx.common_neighbors(g, m_i, m_j))
+                    if len(common_neighbors) > 0:
+                        m_i_degree = self.G.degree(m_i)
+                        m_j_degree = self.G.degree(m_j)
+
+                        weight = 0.0
+                        for gene in common_neighbors:
+                            gene_degree = g.degree(gene)
+                            weight += 1.0 / gene_degree * min(float(self.G.number_of_edges(m_i, gene)),
+                                                              float(self.G.number_of_edges(m_j, gene)))
+
+                        weight = min(weight / m_i_degree, weight / m_j_degree) + 1
+                        if weight > 1.002:  #
+                            self.G.add_edge(u=m_i, v=m_j, weight=weight)
+
+        self.G.remove_nodes_from(targets_nodes)
+        self.G.remove_nodes_from(nx.isolates(self.G))
+        print len(set(self.G))
+        print len(self.G.edges())
+
+    def get_miRNA_community_assgn(self):
+        partition = community.best_partition(self.G, weight='weight')
+        # p_, nodes_community = zip(*sorted(partition.items()))
+        return partition
 
     def build_miRNA_features(self, tags):
         dys_gene = OrderedDict()
