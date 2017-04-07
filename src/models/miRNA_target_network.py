@@ -5,8 +5,10 @@ from collections import OrderedDict
 import community  # python-louvain
 import dask.dataframe as dd
 import networkx as nx
+from networkx.algorithms import bipartite
 import numpy as np
 import pandas
+import scipy
 import scipy.stats
 from dask.multiprocessing import get
 from sklearn.cluster import AgglomerativeClustering
@@ -19,6 +21,11 @@ class miRNATargetNetwork:
         self.genes_list = targets
         self.add_miRNA_nodes(miRNAs)
         self.add_target_nodes(targets)
+
+    def load_from_file(self, path):
+        self.B = nx.read_gml(path)
+        self.mirna_list = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
+        self.genes_list = set(g) - self.mirna_list
 
     def add_miRNA_nodes(self, miRNAs):
         self.B.add_nodes_from(miRNAs, bipartite=0)
@@ -111,9 +118,9 @@ class miRNATargetNetwork:
         else:
             return scipy.stats.norm.sf(abs(z))
 
-    def build_miRNA_similarity_graph(self):
-        self.G = copy.deepcopy(self.B.to_undirected())
-        self.G.remove_nodes_from(nx.isolates(self.G))
+    def build_miRNA_similarity_graph(self, power=1, percentile=95):
+        g = copy.deepcopy(self.B.to_undirected())
+        g.remove_nodes_from(nx.isolates(g))
 
         miRNAs_nodes = set(n for n, d in g.nodes(data=True) if d['bipartite'] == 0)
         targets_nodes = set(g) - miRNAs_nodes
@@ -121,31 +128,25 @@ class miRNATargetNetwork:
         print 'targets', len(targets_nodes)
         print 'edges', len(g.edges())
 
-        for m_i in miRNAs_nodes:
-            for m_j in miRNAs_nodes:
-                if (m_i is not m_j) and not (g.has_edge(m_i, m_j)):
-                    common_neighbors = sorted(nx.common_neighbors(g, m_i, m_j))
-                    if len(common_neighbors) > 0:
-                        m_i_degree = self.G.degree(m_i)
-                        m_j_degree = self.G.degree(m_j)
+        # TODO must account for multiple edges between a miRNA and a target
+        miRNA_target_adj = bipartite.biadjacency_matrix(g, row_order=miRNAs_nodes, column_order=targets_nodes)
 
-                        weight = 0.0
-                        for gene in common_neighbors:
-                            gene_degree = g.degree(gene)
-                            weight += 1.0 / gene_degree * min(float(self.G.number_of_edges(m_i, gene)),
-                                                              float(self.G.number_of_edges(m_j, gene)))
+        cosine_sim_condensed = 1 - scipy.spatial.distance.pdist(miRNA_target_adj.toarray(), "cosine")
+        cosine_similarity_matrix = scipy.spatial.distance.squareform(cosine_sim_condensed)
 
-                        weight = min(weight / m_i_degree, weight / m_j_degree) + 1
-                        if weight > 1.002:  #
-                            self.G.add_edge(u=m_i, v=m_j, weight=weight)
+        threshold = np.percentile(np.power(cosine_similarity_matrix, power), percentile)
+        print threshold
 
-        self.G.remove_nodes_from(targets_nodes)
-        self.G.remove_nodes_from(nx.isolates(self.G))
-        print len(set(self.G))
-        print len(self.G.edges())
+        cosine_similarity_matrix[np.where(cosine_similarity_matrix < threshold)] = 0
+        m = nx.from_numpy_matrix(cosine_similarity_matrix, create_using=nx.Graph())
+        m = nx.relabel_nodes(m, {index: miRNA for (index, miRNA) in enumerate(miRNAs_nodes)})
+        print "edges after threshold:", len(m.edges())
 
-    def get_miRNA_community_assgn(self):
-        partition = community.best_partition(self.G, weight='weight')
+        m.remove_nodes_from(nx.isolates(m))
+        return m
+
+    def get_miRNA_community_assgn(self, m):
+        partition = community.best_partition(m, weight='weight')
         # p_, nodes_community = zip(*sorted(partition.items()))
         return partition
 
