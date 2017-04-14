@@ -5,12 +5,12 @@ from collections import OrderedDict
 import community  # python-louvain
 import dask.dataframe as dd
 import networkx as nx
-from networkx.algorithms import bipartite
 import numpy as np
 import pandas
 import scipy
 import scipy.stats
 from dask.multiprocessing import get
+from networkx.algorithms import bipartite
 from sklearn.cluster import AgglomerativeClustering
 
 
@@ -25,7 +25,7 @@ class miRNATargetNetwork:
     def load_from_file(self, path):
         self.B = nx.read_gml(path)
         self.mirna_list = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
-        self.genes_list = set(g) - self.mirna_list
+        self.genes_list = set(self.B) - self.mirna_list
 
     def add_miRNA_nodes(self, miRNAs):
         self.B.add_nodes_from(miRNAs, bipartite=0)
@@ -118,7 +118,7 @@ class miRNATargetNetwork:
         else:
             return scipy.stats.norm.sf(abs(z))
 
-    def build_miRNA_similarity_graph(self, power=1, percentile=95):
+    def build_miRNA_similarity_graph(self, power=1, threshold=0.03):
         g = copy.deepcopy(self.B.to_undirected())
         g.remove_nodes_from(nx.isolates(g))
 
@@ -132,10 +132,8 @@ class miRNATargetNetwork:
         miRNA_target_adj = bipartite.biadjacency_matrix(g, row_order=miRNAs_nodes, column_order=targets_nodes)
 
         cosine_sim_condensed = 1 - scipy.spatial.distance.pdist(miRNA_target_adj.toarray(), "cosine")
+        cosine_sim_condensed = np.power(cosine_sim_condensed, power)
         cosine_similarity_matrix = scipy.spatial.distance.squareform(cosine_sim_condensed)
-
-        threshold = np.percentile(np.power(cosine_similarity_matrix, power), percentile)
-        print threshold
 
         cosine_similarity_matrix[np.where(cosine_similarity_matrix < threshold)] = 0
         m = nx.from_numpy_matrix(cosine_similarity_matrix, create_using=nx.Graph())
@@ -145,9 +143,8 @@ class miRNATargetNetwork:
         m.remove_nodes_from(nx.isolates(m))
         return m
 
-    def get_miRNA_community_assgn(self, m):
-        partition = community.best_partition(m, weight='weight')
-        # p_, nodes_community = zip(*sorted(partition.items()))
+    def get_miRNA_community_assgn(self, power=1, threshold=0.03):
+        partition = community.best_partition(self.build_miRNA_similarity_graph(power, threshold), weight='weight')
         return partition
 
     def build_miRNA_features(self, tags):
