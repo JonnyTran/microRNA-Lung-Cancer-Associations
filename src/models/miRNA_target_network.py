@@ -147,6 +147,22 @@ class miRNATargetNetwork:
         partition = community.best_partition(self.build_miRNA_similarity_graph(power, threshold), weight='weight')
         return partition
 
+    @staticmethod
+    def partitions_to_miRNA_cluster_assg(partition, mirna_list):
+        miRNA_cluster_assg = []
+        counter = 0
+        taken = np.unique(partition.values())
+        for m in mirna_list:
+            if partition.has_key(m):
+                miRNA_cluster_assg.append(partition[m])
+            else:
+                while counter in taken:
+                    counter += 1
+                miRNA_cluster_assg.append(counter)
+                counter += 1
+        return miRNA_cluster_assg
+
+    @DeprecationWarning
     def build_miRNA_features(self, tags):
         dys_gene = OrderedDict()
         for tag in tags:
@@ -177,6 +193,7 @@ class miRNATargetNetwork:
 
             self.miRNA_target_assn_matrix.loc[edge[0]][edge[1] + '/' + edge[2]['tag']] = f(edge[2]['tag'])
 
+    @DeprecationWarning
     def run_miRNA_clustering(self, n_cluster=20, affinity='manhattan', linkage='complete'):
 
         mirna_cluster = AgglomerativeClustering(n_clusters=n_cluster, affinity=affinity, linkage=linkage).fit(
@@ -193,6 +210,7 @@ class miRNATargetNetwork:
 
         return np.bincount(mirna_cluster.labels_)
 
+    @DeprecationWarning
     def get_miRNA_cluster_assgn(self):
         mirna_group_assg = OrderedDict((miRNA, -1) for miRNA in self.mirna_list)
 
@@ -213,6 +231,7 @@ class miRNATargetNetwork:
 
         return mirna_group_assg.values()
 
+    @DeprecationWarning
     def get_miRNA_group_assgn(self, smaller_groups=True):
         miRNAs_nodes = set(n for n, d in self.B.nodes(data=True) if d['bipartite'] == 0)
         targets_nodes = set(self.B) - miRNAs_nodes
