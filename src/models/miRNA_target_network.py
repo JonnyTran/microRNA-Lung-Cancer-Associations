@@ -11,6 +11,7 @@ import scipy
 import scipy.stats
 from dask.multiprocessing import get
 from networkx.algorithms import bipartite
+from sklearn import metrics
 from sklearn.cluster import AgglomerativeClustering
 
 
@@ -148,19 +149,49 @@ class miRNATargetNetwork:
         return partition
 
     @staticmethod
-    def partitions_to_miRNA_cluster_assg(partition, mirna_list):
+    def list_of_groups(group_assg_list, mirna_list):
+        # Get array containing all groups, each group is an array containing the miRNA's in that group\n
+        partition_mirnas_int = []
+        for group_no in np.unique(group_assg_list.values()):
+            group = []
+            for k, v in group_assg_list.iteritems():
+                if v == group_no:
+                    group.append(mirna_list.index(k))
+            partition_mirnas_int.append(group)
+        return partition_mirnas_int
+
+    @staticmethod
+    def group_assg_list(community_partition, mirna_list, unique=False):
         miRNA_cluster_assg = []
-        counter = 0
-        taken = np.unique(partition.values())
+        counter = 9999
+        if unique: taken = np.unique(community_partition.values())
         for m in mirna_list:
-            if partition.has_key(m):
-                miRNA_cluster_assg.append(partition[m])
+            if community_partition.has_key(m):
+                miRNA_cluster_assg.append(community_partition[m])
             else:
-                while counter in taken:
+                if unique:
+                    while counter in taken:
+                        counter += 1
+                    miRNA_cluster_assg.append(counter)
                     counter += 1
-                miRNA_cluster_assg.append(counter)
-                counter += 1
+                else:
+                    miRNA_cluster_assg.append(counter)
         return miRNA_cluster_assg
+
+    @staticmethod
+    def cluster_similarity(partition_a, partition_b, metric="rand"):
+        a = []
+        b = []
+        for i in range(len(partition_a)):
+            if partition_a[i] != 9999 and partition_b[i] != 9999:
+                a.append(partition_a[i])
+                b.append(partition_b[i])
+        if metric is "rand":
+            return metrics.adjusted_rand_score(a, b)
+        elif metric is "nmi":
+            return metrics.normalized_mutual_info_score(a, b)
+        else:
+            return None
 
     @DeprecationWarning
     def build_miRNA_features(self, tags):
