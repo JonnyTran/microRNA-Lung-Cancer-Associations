@@ -1,4 +1,3 @@
-import copy
 import operator
 from collections import OrderedDict
 
@@ -120,7 +119,7 @@ class miRNATargetNetwork:
             return scipy.stats.norm.sf(abs(z))
 
     def build_miRNA_similarity_graph(self, power=1, threshold=0.03):
-        g = copy.deepcopy(self.B.to_undirected())
+        g = self.B.to_undirected()
         g.remove_nodes_from(nx.isolates(g))
 
         miRNAs_nodes = set(n for n, d in g.nodes(data=True) if d['bipartite'] == 0)
@@ -131,6 +130,7 @@ class miRNATargetNetwork:
 
         # TODO must account for multiple edges between a miRNA and a target
         miRNA_target_adj = bipartite.biadjacency_matrix(g, row_order=miRNAs_nodes, column_order=targets_nodes)
+        del g  # Free memory
 
         cosine_sim_condensed = 1 - scipy.spatial.distance.pdist(miRNA_target_adj.toarray(), "cosine")
         cosine_sim_condensed = np.power(cosine_sim_condensed, power)
