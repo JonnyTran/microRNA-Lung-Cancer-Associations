@@ -11,6 +11,7 @@ class Target_Scan:
     def __init__(self, mirna_list, gene_symbols, unique_mirna_group_no=False):
         self.process_targetscan_mirna_family(mirna_list, unique_mirna_group_no=unique_mirna_group_no)
         self.process_mirna_target_interactions(mirna_list, gene_symbols)
+        self.process_mirna_target_interactions_context_score(mirna_list, gene_symbols)
 
     def process_targetscan_mirna_family(self, mirna_list, unique_mirna_group_no=False):
         targetScan_family_df = pandas.read_table(os.path.join(ROOT_DIR, 'data/external/TargetScan_miR_Family_Info.txt'),
@@ -76,6 +77,9 @@ class Target_Scan:
     def get_miRNA_target_interaction(self):
         return self.targetScan_df
 
+    def get_miRNA_target_interaction_context(self):
+        return self.targetScan_context_df
+
     def print_miRNA_family(self):
         for m, m_assg in zip(tgca_luad.mirna_list, self.mirna_family_assg):
             if m_assg < len(self.mirna_family_names):
@@ -84,7 +88,29 @@ class Target_Scan:
                 fam = ""
             print m, '\t\t', fam
 
+    def process_mirna_target_interactions_context_score(self, mirna_list, gene_symbols):
+        # Load data frame from file
+        targetScan_context_df = pandas.read_table(
+            os.path.join(ROOT_DIR, 'data/external/TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt'),
+            delimiter='\t')
 
+        # Select only homo sapiens miRNA-target pairs
+        targetScan_context_df = targetScan_context_df[targetScan_context_df["Species ID"] == 9606][
+            ["miR Family", "Gene Symbol"]]
+
+        # Use miRBase ID names
+        targetScan_context_df.rename(columns={'miRNA': 'MiRBase ID'}, inplace=True)
+        targetScan_context_df = targetScan_context_df[["MiRBase ID", "Gene Symbol"]]
+
+        # Standardize miRNA names
+        targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.lower()
+        targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
+        targetScan_context_df.drop_duplicates(inplace=True)
+
+        # Filter miRNA-target pairs to only miRNA's included in miRNA expression data, same for gene targets
+        self.targetScan_context_df = targetScan_context_df[
+            targetScan_context_df['MiRBase ID'].isin(mirna_list) & targetScan_context_df['Gene Symbol'].isin(
+                gene_symbols)]
 
 class TCGA_LUAD:
     def __init__(self):
