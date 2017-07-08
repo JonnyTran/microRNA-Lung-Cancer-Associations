@@ -95,12 +95,13 @@ class Target_Scan:
             delimiter='\t')
 
         # Select only homo sapiens miRNA-target pairs
-        targetScan_context_df = targetScan_context_df[targetScan_context_df["Species ID"] == 9606][
-            ["miR Family", "Gene Symbol"]]
+        targetScan_context_df = targetScan_context_df[targetScan_context_df["Gene Tax ID"] == 9606][
+            ["miRNA", "Gene Symbol"]]
+
+        # TODO Select only interactions with high context score
 
         # Use miRBase ID names
         targetScan_context_df.rename(columns={'miRNA': 'MiRBase ID'}, inplace=True)
-        targetScan_context_df = targetScan_context_df[["MiRBase ID", "Gene Symbol"]]
 
         # Standardize miRNA names
         targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.lower()
