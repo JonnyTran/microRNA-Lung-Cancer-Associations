@@ -120,7 +120,7 @@ class miRNATargetNetwork:
 
     def build_miRNA_similarity_graph(self, power=1, threshold=0.03):
         g = self.B.to_undirected()
-        g.remove_nodes_from(nx.isolates(g))
+        g.remove_nodes_from(list(nx.isolates(g)))
 
         miRNAs_nodes = set(n for n, d in g.nodes(data=True) if d['bipartite'] == 0)
         targets_nodes = set(g) - miRNAs_nodes
