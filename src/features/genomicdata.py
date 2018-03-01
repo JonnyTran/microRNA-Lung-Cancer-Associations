@@ -7,10 +7,13 @@ import pandas as pd
 
 
 class GenomicData(object):
-    def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA"):
+    def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA", log2_transform=True):
         self.cancer_type = cancer_type
 
         self.data = self.preprocess_expression_table(pd.read_table(file_path, sep="\t"), columns)
+
+        if log2_transform:
+            self.data = self.data.applymap(self.log2_transform)
 
         # Save samples and features for this omics data
         self.samples = self.data.index
@@ -49,6 +52,9 @@ class GenomicData(object):
         table = table.iloc[:, i]
 
         return table
+
+    def log2_transform(self, x):
+        return np.log2(x+1)
 
 
     def get_genes_list(self):

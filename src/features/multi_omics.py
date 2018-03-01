@@ -19,18 +19,18 @@ class MultiOmicsData:
 
             folder_path/
                 clinical/
-                    genome.wustl.edu_biospecimen_sample_luad.txt
-                    nationwidechildrens.org_clinical_patient_luad.txt
+                    genome.wustl.edu_biospecimen_sample.txt
+                    nationwidechildrens.org_clinical_patient.txt
                 gene_exp/
-                    LUAD__geneExp.txt
+                    geneExp.txt
                 mirna/
-                    LUAD__miRNAExp__RPM.txt
+                    miRNAExp__RPM.txt
                 cnv/
-                    LUAD__copyNumber.txt
+                    copyNumber.txt
                 protein_rppa/
-                    LUAD__protein_RPPA.txt
+                    protein_RPPA.txt
                 somatic/
-                    LUAD__somaticMutation_geneLevel.txt
+                    somaticMutation_geneLevel.txt
 
         :param cancer_type: TCGA cancer code name
         :param folder_path: relative directory path to the folder containing multi-omics data downloaded from TCGA-assembler
@@ -103,9 +103,6 @@ class MultiOmicsData:
         # Build targets clinical data
         y = self.get_patients_clinical(matched_samples)
 
-        # Filter target column labels
-        y = y.filter(target)
-        y.dropna(axis=0, inplace=True)
 
         # Filter samples
         y = y[y['ajcc_pathologic_tumor_stage'] != "[Discrepancy]"]
@@ -118,6 +115,9 @@ class MultiOmicsData:
         if histological_types:
             y = y[y['histologic_diagnosis.1'].isin(histological_types)]
 
+        # Filter y target column labels
+        y = y.filter(target)
+        y.dropna(axis=0, inplace=True)
 
         matched_samples = y.index
 
@@ -164,8 +164,8 @@ class MultiOmicsData:
 
 
 if __name__ == '__main__':
-    folder_path = "/home/jonny_admin/PycharmProjects/nuclei-segmentation/data/tcga-assembler/LUAD/"
-    luad_data = MultiOmicsData(cancer_type="LUAD", folder_path=folder_path,
+    folder_path = "/home/jonny_admin/PycharmProjects/nuclei-segmentation/data/tcga-assembler/LUSC/"
+    luad_data = MultiOmicsData(cancer_type="LUSC", folder_path=folder_path,
                                modalities=["GE", "MIR"])
 
     matched_samples = luad_data.match_samples(modalities=["GE", "MIR"])
