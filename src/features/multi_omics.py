@@ -86,7 +86,7 @@ class MultiOmicsData:
 
         return matched_samples
 
-    def load_data(self, multi_omics, target=['ajcc_pathologic_tumor_stage'], pathologic_stages=[], histological_types=[]):
+    def load_data(self, multi_omics, target=['ajcc_pathologic_tumor_stage', 'histologic_diagnosis.1'], pathologic_stages=[], histological_types=[]):
         """
         Load and return the multi-omics dataset (classification)
         :param multi_omics: A list of the data modalities to load. Default "all" to select all modalities
