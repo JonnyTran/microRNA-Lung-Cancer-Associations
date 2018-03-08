@@ -141,7 +141,7 @@ class miRNATargetNetwork:
         m = nx.relabel_nodes(m, {index: miRNA for (index, miRNA) in enumerate(miRNAs_nodes)})
         print "edges after threshold:", len(m.edges())
 
-        m.remove_nodes_from(nx.isolates(m))
+        m.remove_nodes_from(list(nx.isolates(m)))
         return m
 
     def get_miRNA_community_assgn(self, power=1, threshold=0.03):
