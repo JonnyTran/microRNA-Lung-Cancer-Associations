@@ -1,4 +1,5 @@
 import os
+
 import pandas as pd
 
 from definitions import ROOT_DIR
@@ -8,6 +9,11 @@ class ClinicalData:
     clinical_patient_colsname = ['bcr_patient_barcode', 'gender', 'race', 'histologic_diagnosis.1',
                                  'ajcc_pathologic_tumor_stage'
                                  ]
+
+    pathologic_stage_map = {'Stage IA': 'Stage I', 'Stage IB': 'Stage I',
+                            'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
+                            'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
+
     biospecimen_sample_colsname = ['bcr_sample_barcode', 'sample_type']
 
     clinical_drug_colsname = ['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name', 'pharmaceutical_therapy_type',
@@ -24,6 +30,9 @@ class ClinicalData:
                                      usecols=ClinicalData.clinical_patient_colsname
                                      )
         self.patient.index = self.patient["bcr_patient_barcode"]
+
+        self.patient.replace({'ajcc_pathologic_tumor_stage': ClinicalData.pathologic_stage_map}, inplace=True)
+
 
         # # Import biospecimen samples (not all samples included in dataset)
         # self.biospecimen = pd.read_table(os.path.join(folder_path, "genome.wustl.edu_biospecimen_sample.txt"),

@@ -1,17 +1,14 @@
 import pandas as pd
-import numpy as np
 
-from definitions import ROOT_DIR
 from src.features.clinicaldata import ClinicalData
 from src.features.genomicdata import GeneExpression, SNP, DNAMethylation, miRNAExpression, CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
+
+
 # from src.features.slide_image import WholeSlideImages
 
 
 class MultiOmicsData:
-    pathologic_stage_map = {'Stage IA': 'Stage I', 'Stage IB': 'Stage I',
-                            'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
-                            'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
     def __init__(self, cancer_type, folder_path, modalities=["WSI", "GE", "SNP", "CNV", "DNA", "MIR", "PRO"]):
         """
@@ -79,6 +76,7 @@ class MultiOmicsData:
         :param modalities: An array of modalities
         :return: An pandas Index list
         """
+        # TODO check that for single modalities, this fetch all patients
         matched_samples = self.multi_omics_data[modalities[0]].index.copy()
 
         for modality in modalities:
@@ -86,7 +84,8 @@ class MultiOmicsData:
 
         return matched_samples
 
-    def load_data(self, multi_omics, target=['ajcc_pathologic_tumor_stage', 'histologic_diagnosis.1'], pathologic_stages=[], histological_types=[]):
+    def load_data(self, multi_omics, target=['ajcc_pathologic_tumor_stage'],
+                  pathologic_stages=[], histological_types=[], predicted_subtypes=[]):
         """
         Load and return the multi-omics dataset (classification)
         :param multi_omics: A list of the data modalities to load. Default "all" to select all modalities
@@ -114,6 +113,8 @@ class MultiOmicsData:
             y = y[y['ajcc_pathologic_tumor_stage'].isin(pathologic_stages)]
         if histological_types:
             y = y[y['histologic_diagnosis.1'].isin(histological_types)]
+        if predicted_subtypes:
+            y = y[y['subtype'].isin(predicted_subtypes)]
 
         # Filter y target column labels
         y = y.filter(target)
@@ -150,9 +151,6 @@ class MultiOmicsData:
         # TODO if normal_matched:
         #     target =
         print("joined clinical data size:", target.shape)
-
-        target.replace({'ajcc_pathologic_tumor_stage': MultiOmicsData.pathologic_stage_map}, inplace=True)
-
         return target  # Return only the columns specified
 
 
