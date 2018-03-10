@@ -101,7 +101,7 @@ class MultiOmicsData:
 
         # Build targets clinical data
         y = self.get_patients_clinical(matched_samples)
-
+        print y
 
         # Filter samples
         y = y[y['ajcc_pathologic_tumor_stage'] != "[Discrepancy]"]
@@ -131,7 +131,7 @@ class MultiOmicsData:
 
     def get_patients_clinical(self, matched_samples, clinical_data=['PATIENTS']):
         """
-        Fetch patient's clinical data given a list of samples barcodes
+        Fetch patient's clinical data for each given samples barcodes in matched_samples
 
         :param matched_samples:
         :param clinical_data:
@@ -141,7 +141,7 @@ class MultiOmicsData:
 
         # Make a separate column for patients barcode from samples barcode
         target["patient_barcode"] = target.index.str[:-4]
-        print("modalities matched sample size:", target.shape)
+        # print("modalities matched sample size:", target.shape)
 
         # Merge patients clinical data with patient barcode as index
         for clinical in clinical_data:
@@ -150,7 +150,7 @@ class MultiOmicsData:
 
         # TODO if normal_matched:
         #     target =
-        print("joined clinical data size:", target.shape)
+        # print("joined clinical data size:", target.shape)
         return target  # Return only the columns specified
 
 
