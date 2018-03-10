@@ -1,9 +1,9 @@
 import os
 
-from definitions import ROOT_DIR
-
 import numpy as np
 import pandas as pd
+
+from definitions import ROOT_DIR
 
 
 class GenomicData(object):
@@ -21,6 +21,12 @@ class GenomicData(object):
         # self.features.remove("bcr_sample_barcode")
 
     def preprocess_expression_table(self, df, columns):
+        """
+        Download
+        :param df:
+        :param columns:
+        :return:
+        """
         table = df
 
         # Filter columns

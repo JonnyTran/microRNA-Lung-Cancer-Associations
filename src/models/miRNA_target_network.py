@@ -142,10 +142,20 @@ class miRNATargetNetwork:
         print "edges after threshold:", len(m.edges())
 
         m.remove_nodes_from(list(nx.isolates(m)))
+
+        # Cache the miRNA similarity graph (MDSN)
+        self.mdsn = m
+
         return m
 
-    def get_miRNA_community_assgn(self, power=1, threshold=0.03):
-        partition = community.best_partition(self.build_miRNA_similarity_graph(power, threshold), weight='weight')
+    def get_miRNA_community_assgn(self, power=1, threshold=0.03, use_cached=False):
+        if not use_cached:
+            partition = community.best_partition(self.build_miRNA_similarity_graph(power, threshold), weight='weight')
+        elif use_cached and self.mdsn:
+            partition = community.best_partition(self.mdsn, weight='weight')
+        else:
+            raise Exception("get_miRNA_community_assgn use_cached true but no cached MDSN")
+
         return partition
 
     @staticmethod
