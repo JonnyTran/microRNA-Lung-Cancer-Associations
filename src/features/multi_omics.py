@@ -17,7 +17,7 @@ class MultiOmicsData:
             folder_path/
                 clinical/
                     genome.wustl.edu_biospecimen_sample.txt
-                    nationwidechildrens.org_clinical_patient.txt
+                    nationwidechildrens.org_clinica l_patient.txt
                 gene_exp/
                     geneExp.txt
                 mirna/
@@ -101,7 +101,7 @@ class MultiOmicsData:
 
         # Build targets clinical data
         y = self.get_patients_clinical(matched_samples)
-        print y
+        # print(y)
 
         # Filter samples
         y = y[y['ajcc_pathologic_tumor_stage'] != "[Discrepancy]"]
@@ -114,7 +114,9 @@ class MultiOmicsData:
         if histological_types:
             y = y[y['histologic_diagnosis.1'].isin(histological_types)]
         if predicted_subtypes:
-            y = y[y['subtype'].isin(predicted_subtypes)]
+            y = y[y['predicted_subtype'].isin(predicted_subtypes)]
+        # TODO if normal_matched:
+        #     target =
 
         # Filter y target column labels
         y = y.filter(target)
@@ -141,16 +143,19 @@ class MultiOmicsData:
 
         # Make a separate column for patients barcode from samples barcode
         target["patient_barcode"] = target.index.str[:-4]
-        # print("modalities matched sample size:", target.shape)
+
+        no_samples = target.shape[0]
 
         # Merge patients clinical data with patient barcode as index
         for clinical in clinical_data:
-            target = target.join(self.multi_omics_data[clinical],
-                                 how="left", on="patient_barcode", rsuffix="_")
+            # target = pd.merge(target, self.multi_omics_data[clinical],
+            #                      how="left", left_on="patient_barcode", right_on="patient_barcode")
+            target = target.join(self.multi_omics_data[clinical], on="patient_barcode", how="left", rsuffix="_")
 
-        # TODO if normal_matched:
-        #     target =
-        # print("joined clinical data size:", target.shape)
+        # print(target)
+        if target.shape[0] != no_samples:
+            raise Exception("Clinical data merging has wrong number of samples")
+
         return target  # Return only the columns specified
 
 
@@ -159,6 +164,9 @@ class MultiOmicsData:
             print(modality, self.multi_omics_data[modality].shape if hasattr(self.multi_omics_data[modality],
                                                                              'shape') else "Didn't import data")
 
+    def add_subtypes_to_patients_clinical(self, dictionary):
+        self.multi_omics_data["PATIENTS"] = self.multi_omics_data["PATIENTS"].assign(
+            predicted_subtype=self.multi_omics_data["PATIENTS"]["bcr_patient_barcode"].map(dictionary))
 
 
 if __name__ == '__main__':
