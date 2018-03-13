@@ -75,8 +75,10 @@ class miRNATargetNetwork:
                 for tup in res_partition:
                     self.B.add_edge(tup[0], tup[1], dys=tup[2], tag=tag)
                     edges_added += 1
+
         ## Iterate through every miRNA-gene associations sequentially (slow)
         else:
+            print("Only running single core")
             for m in self.mirna_list:
                 m_A = miRNA_A[m] - np.mean(miRNA_A[m])
                 m_B = miRNA_B[m] - np.mean(miRNA_B[m])

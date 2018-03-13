@@ -85,7 +85,7 @@ class MultiOmicsData:
         return matched_samples
 
     def load_data(self, multi_omics, target=['ajcc_pathologic_tumor_stage'],
-                  pathologic_stages=[], histological_types=[], predicted_subtypes=[]):
+                  pathologic_stages=[], histological_types=[], predicted_subtypes=[], samples_barcode=None):
         """
         Load and return the multi-omics dataset (classification)
         :param multi_omics: A list of the data modalities to load. Default "all" to select all modalities
@@ -98,6 +98,8 @@ class MultiOmicsData:
             raise Exception("Need to specify which multi-omics to retrieve")
 
         matched_samples = self.match_samples(modalities)
+        if not (samples_barcode is None):
+            matched_samples = samples_barcode
 
         # Build targets clinical data
         y = self.get_patients_clinical(matched_samples)
