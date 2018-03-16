@@ -65,7 +65,7 @@ class miRNATargetNetwork:
                     dys = miRNA_gene_A_corr - miRNA_gene_B_corr
                     p_value = self.z_to_p_value(self.fisher_r_to_z(miRNA_gene_A_corr, n_A, miRNA_gene_B_corr, n_B))
 
-                    if p_value <= p_threshold:
+                    if p_value <= p_threshold and (miRNA_gene_A_corr < 0 or miRNA_gene_B_corr < 0):
                         result.append((m, t, p_value))
                 return result
 
@@ -78,7 +78,8 @@ class miRNATargetNetwork:
 
         ## Iterate through every miRNA-gene associations sequentially (slow)
         else:
-            print("Only running single core")
+            print("Only running single core"
+                  "+")
             for m in self.mirna_list:
                 m_A = miRNA_A[m] - np.mean(miRNA_A[m])
                 m_B = miRNA_B[m] - np.mean(miRNA_B[m])
