@@ -1,8 +1,23 @@
 
-Association-miRNA-LUAD
+MicroRNA dysregulational synergistic network
 ==============================
 
 A association study between miRNA signatures and various stages in lung cancer
+
+Citation
+------------
+
+    @article{tran2018microrna,
+      title={MicroRNA dysregulational synergistic network: discovering microRNA dysregulatory modules across subtypes in non-small cell lung cancers},
+      author={Tran, Nhat and Abhyankar, Vinay and Nguyen, KyTai and Weidanz, Jon and Gao, Jean},
+      journal={BMC bioinformatics},
+      volume={19},
+      number={20},
+      pages={25--36},
+      year={2018},
+      publisher={BioMed Central}
+    }
+
 
 Project Organization
 ------------
