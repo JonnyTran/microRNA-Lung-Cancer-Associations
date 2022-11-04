@@ -1,0 +1,18 @@
+---
+cff-version: 1.2.0
+message: "Please cite our paper if you use this code in your own work."
+title: "MicroRNA dysregulational synergistic network: discovering microRNA dysregulatory modules across subtypes in non-small cell lung cancers"
+authors:
+- family-names: "Tran"
+  given-names: "Nhat C."
+- family-names: "Abhyankar"
+  given-names: "Vinay"
+- family-names: "Nguyen"
+  given-names: "KyTai"
+- family-names: "Weidanz"
+  given-names: "Jon"
+- family-names: "Gao"
+  given-names: "Jean X."
+date-released: 2018-05-06
+license: cc-by-4.0
+url: "https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-018-2536-0"
